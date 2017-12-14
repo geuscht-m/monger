@@ -199,7 +199,7 @@
 ;;
 ;; EXAMPLES:
 ;;   (mgcol/update coll { :_id oid } { $pushAll { :tags ["mongodb" "docs"] } })
-(defoperator $pushAll)
+;;(defoperator $pushAll)
 
 ;; $addToSet Adds value to the array only if its not in the array already, if field is an existing array, otherwise sets field to the
 ;; array value if field is not present. If field is present but is not an array, an error condition is raised.

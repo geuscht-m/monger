@@ -231,33 +231,33 @@
   ;; $pushAll
   ;;
 
-  (deftest initialize-an-array-using-$pushAll-modifier
-    (let [coll  "docs"
-          oid   (ObjectId.)
-          title "$pushAll modifier appends multiple values to field"]
-      (mc/insert db coll {:_id oid :title title})
-      (mc/update db coll {:_id oid} {$pushAll {:tags ["mongodb" "docs"]}})
-      (is (= {:_id oid :title title :tags ["mongodb" "docs"]}
-             (mc/find-map-by-id db coll oid)))))
+  ;; (deftest initialize-an-array-using-$pushAll-modifier
+  ;;   (let [coll  "docs"
+  ;;         oid   (ObjectId.)
+  ;;         title "$pushAll modifier appends multiple values to field"]
+  ;;     (mc/insert db coll {:_id oid :title title})
+  ;;     (mc/update db coll {:_id oid} {$pushAll {:tags ["mongodb" "docs"]}})
+  ;;     (is (= {:_id oid :title title :tags ["mongodb" "docs"]}
+  ;;            (mc/find-map-by-id db coll oid)))))
 
-  (deftest add-value-to-an-existing-array-using-$pushAll-modifier
-    (let [coll  "docs"
-          oid   (ObjectId.)
-          title "$pushAll modifier appends multiple values to field"]
-      (mc/insert db coll {:_id oid :title title :tags ["mongodb"]})
-      (mc/update db coll {:_id oid} {$pushAll {:tags ["modifiers" "docs"]}})
-      (is (= {:_id oid :title title :tags ["mongodb" "modifiers" "docs"]}
-             (mc/find-map-by-id db coll oid)))))
+  ;; (deftest add-value-to-an-existing-array-using-$pushAll-modifier
+  ;;   (let [coll  "docs"
+  ;;         oid   (ObjectId.)
+  ;;         title "$pushAll modifier appends multiple values to field"]
+  ;;     (mc/insert db coll {:_id oid :title title :tags ["mongodb"]})
+  ;;     (mc/update db coll {:_id oid} {$pushAll {:tags ["modifiers" "docs"]}})
+  ;;     (is (= {:_id oid :title title :tags ["mongodb" "modifiers" "docs"]}
+  ;;            (mc/find-map-by-id db coll oid)))))
 
 
-  (deftest double-add-value-to-an-existing-array-using-$pushAll-modifier
-    (let [coll  "docs"
-          oid   (ObjectId.)
-          title "$pushAll modifier appends multiple values to field"]
-      (mc/insert db coll {:_id oid :title title :tags ["mongodb" "docs"]})
-      (mc/update db coll {:_id oid} {$pushAll {:tags ["modifiers" "docs"]}})
-      (is (= {:_id oid :title title :tags ["mongodb" "docs" "modifiers" "docs"]}
-             (mc/find-map-by-id db coll oid)))))
+  ;; (deftest double-add-value-to-an-existing-array-using-$pushAll-modifier
+  ;;   (let [coll  "docs"
+  ;;         oid   (ObjectId.)
+  ;;         title "$pushAll modifier appends multiple values to field"]
+  ;;     (mc/insert db coll {:_id oid :title title :tags ["mongodb" "docs"]})
+  ;;     (mc/update db coll {:_id oid} {$pushAll {:tags ["modifiers" "docs"]}})
+  ;;     (is (= {:_id oid :title title :tags ["mongodb" "docs" "modifiers" "docs"]}
+  ;;            (mc/find-map-by-id db coll oid)))))
 
 
   ;;
