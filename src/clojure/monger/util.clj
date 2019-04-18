@@ -36,6 +36,7 @@
            java.math.BigInteger
            org.bson.types.ObjectId
            com.mongodb.DBObject
+           org.bson.Document
            clojure.lang.IPersistentMap
            java.util.Map))
 
@@ -72,7 +73,13 @@
   IPersistentMap
   (get-id
     [^IPersistentMap object]
-    (or (:_id object) (object "_id"))))
+    (or (:_id object) (object "_id")))
+  
+  Document
+  (get-id
+   [^Document object]
+    (.get object "_id")))
+
 
 (defn into-array-list
   "Coerce a j.u.Collection into a j.u.ArrayList."

@@ -54,7 +54,7 @@
   (:import [com.mongodb Mongo DB DBCollection WriteResult DBObject WriteConcern
             DBCursor MapReduceCommand MapReduceCommand$OutputType AggregationOutput
             AggregationOptions AggregationOptions$OutputMode]
-           [com.mongodb.client MongoDatabase MongoCollection MongoCursor]
+           [com.mongodb.client MongoDatabase MongoCollection MongoCursor FindIterable]
            [com.mongodb.client.result DeleteResult UpdateResult]
            [java.util List Map]
            [java.util.concurrent TimeUnit]
@@ -130,7 +130,7 @@
 ;; monger.collection/find
 ;;
 
-(defn ^MongoCursor find
+(defn ^FindIterable find
   "Queries for objects in this collection.
    This function returns DBCursor, which allows you to iterate over DBObjects.
    If you want to manipulate clojure sequences maps, use find-maps."
