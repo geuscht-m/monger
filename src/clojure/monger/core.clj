@@ -44,8 +44,10 @@
   (:refer-clojure :exclude [count])
   (:require [monger.conversion :refer :all]
             [monger.util :refer [into-array-list]])
-  (:import [com.mongodb MongoClient MongoClientURI MongoCredential DB WriteConcern DBObject DBCursor Bytes
+  (:import [com.mongodb MongoClient MongoClientURI MongoCredential WriteConcern DBCursor Bytes
             MongoClientOptions MongoClientOptions$Builder ServerAddress MapReduceOutput MongoException]
+           [com.mongodb.client MongoDatabase MongoCollection]
+           [org.bson Document]
            [com.mongodb.gridfs GridFS]
            [java.util Map]))
 
@@ -114,10 +116,10 @@
   (set (.getDatabaseNames conn)))
 
 
-(defn ^DB get-db
+(defn ^MongoDatabase get-db
   "Get database reference by name."
   [^MongoClient conn ^String name]
-  (.getDB conn name))
+  (.getDatabase conn name))
 
 (defn drop-db
   "Drops a database"
@@ -216,7 +218,7 @@
 
 (def ^:const admin-db-name "admin")
 
-(defn ^DB admin-db
+(defn ^MongoDatabase admin-db
   "Returns admin database"
   [^MongoClient conn]
   (get-db conn admin-db-name))
@@ -236,7 +238,7 @@
   (let [uri    (MongoClientURI. uri-string)
         conn   (MongoClient. uri)]
     (if-let [dbName (.getDatabase uri)]
-      {:conn conn :db (.getDB conn dbName)}
+      {:conn conn :db (.getDatabase conn dbName)}
       (throw (IllegalArgumentException. "No database name specified in URI. Monger requires a database to be explicitly configured.")))))
 
 (defn ^com.mongodb.CommandResult command
@@ -247,12 +249,12 @@
 
    For commonly used commands (distinct, count, map/reduce, etc), use monger.command and monger.collection functions such as
    /distinct, /count,  /drop, /dropIndexes, and /mapReduce respectively."
-  [^DB database ^Map cmd]
-  (.command ^DB database ^DBObject (to-db-object cmd)))
+  [^MongoDatabase database ^Map cmd]
+  (.command ^MongoDatabase database ^Document (to-db-object cmd)))
 
 (defn ^com.mongodb.CommandResult raw-command
   "Like monger.core/command but accepts DBObjects"
-  [^DB database ^DBObject cmd]
+  [^MongoDatabase database ^Document cmd]
   (.command database cmd))
 
 (defprotocol Countable

@@ -39,7 +39,9 @@
             [clojure.core.cache :as cache]
             [monger.conversion  :as cnv])
   (:import clojure.core.cache.CacheProtocol
-           [com.mongodb DB DBObject WriteConcern]
+           [com.mongodb DBObject WriteConcern]
+           [com.mongodb.client MongoDatabase]
+           org.bson.Document
            java.util.Map))
 
 ;;
@@ -77,9 +79,9 @@
 
 
 (defn basic-monger-cache-factory
-  ([^DB db]
+  ([^MongoDatabase db]
      (BasicMongerCache. db default-cache-collection))
-  ([^DB db collection]
+  ([^MongoDatabase db collection]
      (BasicMongerCache. db collection))
-  ([^DB db collection base]
+  ([^MongoDatabase db collection base]
      (cache/seed (BasicMongerCache. db collection) base)))

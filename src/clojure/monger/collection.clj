@@ -54,10 +54,13 @@
   (:import [com.mongodb Mongo DB DBCollection WriteResult DBObject WriteConcern
             DBCursor MapReduceCommand MapReduceCommand$OutputType AggregationOutput
             AggregationOptions AggregationOptions$OutputMode]
+           [com.mongodb.client MongoDatabase MongoCollection MongoCursor]
+           [com.mongodb.client.result DeleteResult UpdateResult]
            [java.util List Map]
            [java.util.concurrent TimeUnit]
            [clojure.lang IPersistentMap ISeq]
-           org.bson.types.ObjectId)
+           org.bson.types.ObjectId
+           org.bson.Document)
   (:require [monger.core :as mc]
             [monger.result :as mres]
             [monger.conversion :refer :all]
@@ -79,14 +82,16 @@
 
    In case you need the exact inserted document returned, with the :_id key generated,
    use monger.collection/insert-and-return instead."
-  ([^DB db ^String coll document]
-     (.insert (.getCollection db (name coll))
-              (to-db-object document)
-              ^WriteConcern mc/*mongodb-write-concern*))
-  ([^DB db ^String coll document ^WriteConcern concern]
-     (.insert (.getCollection db (name coll))
-              (to-db-object document)
-              concern)))
+  ;; Check if insertOne is the correct function here
+  ([^MongoDatabase db ^String coll document]
+     (insert db coll document ^WriteConcern mc/*mongodb-write-concern*))
+     ;;(.insertOne (.getCollection db (name coll))
+     ;;         (to-bson-document document)
+     ;;         ^WriteConcern mc/*mongodb-write-concern*))
+  ([^MongoDatabase db ^String coll document ^WriteConcern concern]
+     (.insertOne (.getCollection db (name coll))
+              (to-bson-document document))))
+              ;;concern)))
 
 
 (defn ^clojure.lang.IPersistentMap insert-and-return
@@ -94,9 +99,9 @@
 
   If the :_id key wasn't set on the document, it will be generated and merged into the returned
   map."
-  ([^DB db ^String coll document]
+  ([^MongoDatabase db ^String coll document]
      (insert-and-return db coll document ^WriteConcern mc/*mongodb-write-concern*))
-  ([^DB db ^String coll document ^WriteConcern concern]
+  ([^MongoDatabase db ^String coll document ^WriteConcern concern]
      ;; MongoDB Java driver will generate the _id and set it but it
      ;; tries to mutate the inserted DBObject and it does not work
      ;; very well in our case, because that DBObject is short lived
@@ -110,58 +115,60 @@
 
 (defn ^WriteResult insert-batch
   "Saves documents do collection. You can optionally specify WriteConcern as a third argument."
-  ([^DB db ^String coll ^List documents]
-     (.insert (.getCollection db (name coll))
-              ^List (to-db-object documents)
-              ^WriteConcern mc/*mongodb-write-concern*))
-  ([^DB db ^String coll ^List documents ^WriteConcern concern]
-     (.insert (.getCollection db (name coll))
-              ^List (to-db-object documents)
-              concern)))
+  ([^MongoDatabase db ^String coll ^List documents]
+     (insert-batch db coll documents mc/*mongodb-write-concern*))
+     ;;(.insertMany (.getCollection db (name coll))
+     ;;         ^List (to-bson-document documents)
+     ;;         ^WriteConcern mc/*mongodb-write-concern*))
+  ([^MongoDatabase db ^String coll ^List documents ^WriteConcern concern]
+     (.insertMany (.getCollection db (name coll))
+              ^List (to-bson-document documents)
+              ;;concern)))
+              )))
 
 ;;
 ;; monger.collection/find
 ;;
 
-(defn ^DBCursor find
+(defn ^MongoCursor find
   "Queries for objects in this collection.
    This function returns DBCursor, which allows you to iterate over DBObjects.
    If you want to manipulate clojure sequences maps, use find-maps."
-  ([^DB db ^String coll]
+  ([^MongoDatabase db ^String coll]
      (.find (.getCollection db (name coll))))
-  ([^DB db ^String coll ^Map ref]
+  ([^MongoDatabase db ^String coll ^Map ref]
      (.find (.getCollection db (name coll))
-            (to-db-object ref)))
-  ([^DB db ^String coll ^Map ref fields]
+            (to-bson-document ref)))
+  ([^MongoDatabase db ^String coll ^Map ref fields]
      (.find (.getCollection db (name coll))
-            (to-db-object ref)
+            (to-bson-document ref)
             (as-field-selector fields))))
 
 (defn find-maps
   "Queries for objects in this collection.
    This function returns clojure Seq of Maps.
    If you want to work directly with DBObject, use find."
-  ([^DB db ^String coll]
+  ([^MongoDatabase db ^String coll]
      (with-open [dbc (find db coll)]
        (map (fn [x] (from-db-object x true)) dbc)))
-  ([^DB db ^String coll ^Map ref]
+  ([^MongoDatabase db ^String coll ^Map ref]
      (with-open [dbc (find db coll ref)]
        (map (fn [x] (from-db-object x true)) dbc)))
-  ([^DB db ^String coll ^Map ref fields]
+  ([^MongoDatabase db ^String coll ^Map ref fields]
      (find-maps db coll ref fields true))
-  ([^DB db ^String coll ^Map ref fields keywordize]
+  ([^MongoDatabase db ^String coll ^Map ref fields keywordize]
      (with-open [dbc (find db coll ref fields)]
        (map (fn [x] (from-db-object x keywordize)) dbc))))
 
 (defn find-seq
   "Queries for objects in this collection, returns ISeq of DBObjects."
-  ([^DB db ^String coll]
+  ([^MongoDatabase db ^String coll]
      (with-open [dbc (find db coll)]
        (seq dbc)))
-  ([^DB db ^String coll ^Map ref]
+  ([^MongoDatabase db ^String coll ^Map ref]
      (with-open [dbc (find db coll ref)]
        (seq dbc)))
-  ([^DB db ^String coll ^Map ref fields]
+  ([^MongoDatabase db ^String coll ^Map ref fields]
      (with-open [dbc (find db coll ref fields)]
        (seq dbc))))
 
@@ -169,23 +176,23 @@
 ;; monger.collection/find-one
 ;;
 
-(defn ^DBObject find-one
+(defn ^Document find-one
   "Returns a single DBObject from this collection matching the query."
-  ([^DB db ^String coll ^Map ref]
-     (.findOne (.getCollection db (name coll))
-               (to-db-object ref)))
-  ([^DB db ^String coll ^Map ref fields]
-     (.findOne (.getCollection db (name coll))
-               (to-db-object ref)
-               ^DBObject (as-field-selector fields))))
+  ([^MongoDatabase db ^String coll ^Map ref]
+     (first (.find (.getCollection db (name coll))
+                   (to-bson-document ref))))
+  ([^MongoDatabase db ^String coll ^Map ref fields]
+     (first (.find (.getCollection db (name coll))
+                   (to-bson-document ref)
+                   ^Document (as-field-selector fields)))))
 
 (defn ^IPersistentMap find-one-as-map
   "Returns a single object converted to Map from this collection matching the query."
-  ([^DB db ^String coll ^Map ref]
+  ([^MongoDatabase db ^String coll ^Map ref]
      (from-db-object ^DBObject (find-one db coll ref) true))
-  ([^DB db ^String coll ^Map ref fields]
+  ([^MongoDatabase db ^String coll ^Map ref fields]
      (from-db-object ^DBObject (find-one db coll ref fields) true))
-  ([^DB db ^String coll ^Map ref fields keywordize]
+  ([^MongoDatabase db ^String coll ^Map ref fields keywordize]
      (from-db-object ^DBObject (find-one db coll ref fields) keywordize)))
 
 
@@ -195,7 +202,7 @@
 
 (defn ^IPersistentMap find-and-modify
   "Atomically modify a document (at most one) and return it."
-  ([^DB db ^String coll ^Map conditions ^Map document {:keys [fields sort remove return-new upsert keywordize] :or
+  ([^MongoDatabase db ^String coll ^Map conditions ^Map document {:keys [fields sort remove return-new upsert keywordize] :or
                                                        {fields nil
                                                         sort nil
                                                         remove false
@@ -204,10 +211,10 @@
                                                         keywordize true}}]
      (let [coll (.getCollection db (name coll))
            maybe-fields (when fields (as-field-selector fields))
-           maybe-sort (when sort (to-db-object sort))]
+           maybe-sort (when sort (to-bson-document sort))]
        (from-db-object
-        ^DBObject (.findAndModify ^DBCollection coll (to-db-object conditions) maybe-fields maybe-sort remove
-                                  (to-db-object document) return-new upsert) keywordize))))
+        ^DBObject (.findAndModify ^DBCollection coll (to-bson-document conditions) maybe-fields maybe-sort remove
+                                  (to-bson-document document) return-new upsert) keywordize))))
 
 ;;
 ;; monger.collection/find-by-id
@@ -215,22 +222,22 @@
 
 (defn ^DBObject find-by-id
   "Returns a single object with matching _id field."
-  ([^DB db ^String coll id]
+  ([^MongoDatabase db ^String coll id]
      (check-not-nil! id "id must not be nil")
      (find-one db coll {:_id id}))
-  ([^DB db ^String coll id fields]
+  ([^MongoDatabase db ^String coll id fields]
      (check-not-nil! id "id must not be nil")
      (find-one db coll {:_id id} fields)))
 
 (defn ^IPersistentMap find-map-by-id
   "Returns a single object, converted to map with matching _id field."
-  ([^DB db ^String coll id]
+  ([^MongoDatabase db ^String coll id]
      (check-not-nil! id "id must not be nil")
      (find-one-as-map db coll {:_id id}))
-  ([^DB db ^String coll id fields]
+  ([^MongoDatabase db ^String coll id fields]
      (check-not-nil! id "id must not be nil")
      (find-one-as-map db coll {:_id id} fields))
-  ([^DB db ^String coll id fields keywordize]
+  ([^MongoDatabase db ^String coll id fields keywordize]
      (check-not-nil! id "id must not be nil")
      (find-one-as-map db coll {:_id id} fields keywordize)))
 
@@ -242,27 +249,27 @@
   "Returns the number of documents in this collection.
 
   Takes optional conditions as an argument."
-  (^long [^DB db ^String coll]
+  (^long [^MongoDatabase db ^String coll]
          (.count (.getCollection db (name coll))))
-  (^long [^DB db ^String coll ^Map conditions]
-         (.count (.getCollection db (name coll)) (to-db-object conditions))))
+  (^long [^MongoDatabase db ^String coll ^Map conditions]
+         (.count (.getCollection db (name coll)) (to-bson-document conditions))))
 
 (defn any?
   "Whether the collection has any items at all, or items matching query."
-  ([^DB db ^String coll]
+  ([^MongoDatabase db ^String coll]
      (> (count db coll) 0))
-  ([^DB db ^String coll ^Map conditions]
+  ([^MongoDatabase db ^String coll ^Map conditions]
      (> (count db coll conditions) 0)))
 
 
 (defn empty?
   "Whether the collection is empty."
-  [^DB db ^String coll]
+  [^MongoDatabase db ^String coll]
   (= (count db coll {}) 0))
 
 ;; monger.collection/update
 
-(defn ^WriteResult update
+(defn ^UpdateResult update
   "Performs an update operation.
 
   Please note that update is potentially destructive operation. It updates document with the given set
@@ -274,62 +281,62 @@
 
   It also takes options, such as :upsert and :multi.
   By default :upsert and :multi are false."
-  ([^DB db ^String coll ^Map conditions ^Map document]
+  ([^MongoDatabase db ^String coll ^Map conditions ^Map document]
      (update db coll conditions document {}))
-  ([^DB db ^String coll ^Map conditions ^Map document {:keys [upsert multi write-concern]
+  ([^MongoDatabase db ^String coll ^Map conditions ^Map document {:keys [upsert multi write-concern]
                                                        :or {upsert false
                                                             multi false
                                                             write-concern mc/*mongodb-write-concern*}}]
-     (.update (.getCollection db (name coll))
-              (to-db-object conditions)
-              (to-db-object document)
+     (.updateMany (.getCollection db (name coll))
+              (to-bson-document conditions)
+              (to-bson-document document)
               upsert
               multi
               write-concern)))
 
-(defn ^WriteResult upsert
+(defn ^UpdateResult upsert
   "Performs an upsert.
 
    This is a convenience function that delegates to monger.collection/update and
    sets :upsert to true.
 
    See monger.collection/update documentation"
-  ([^DB db ^String coll ^Map conditions ^Map document]
+  ([^MongoDatabase db ^String coll ^Map conditions ^Map document]
      (upsert db coll conditions document {}))
-  ([^DB db ^String coll ^Map conditions ^Map document {:keys [multi write-concern]
+  ([^MongoDatabase db ^String coll ^Map conditions ^Map document {:keys [multi write-concern]
                                                        :or {multi false
                                                             write-concern mc/*mongodb-write-concern*}}]
      (update db coll conditions document {:multi multi :write-concern write-concern :upsert true})))
 
-(defn ^WriteResult update-by-id
+(defn ^UpdateResult update-by-id
   "Update a document with given id"
-  ([^DB db ^String coll id ^Map document]
+  ([^MongoDatabase db ^String coll id ^Map document]
      (update-by-id db coll id document {}))
-  ([^DB db ^String coll id ^Map document {:keys [upsert write-concern]
+  ([^MongoDatabase db ^String coll id ^Map document {:keys [upsert write-concern]
                                           :or {upsert false
                                                write-concern mc/*mongodb-write-concern*}}]
      (check-not-nil! id "id must not be nil")
-     (.update (.getCollection db (name coll))
-              (to-db-object {:_id id})
-              (to-db-object document)
-              upsert
-              false
-              write-concern)))
+     (.updateOne (.getCollection db (name coll))
+                 (to-bson-document {:_id id})
+                 (to-bson-document document)
+                 upsert
+                 false
+                 write-concern)))
 
-(defn ^WriteResult update-by-ids
+(defn ^UpdateResult update-by-ids
   "Update documents by given ids"
-  ([^DB db ^String coll ids ^Map document]
+  ([^MongoDatabase db ^String coll ids ^Map document]
      (update-by-ids db coll ids document {}))
-  ([^DB db ^String coll ids ^Map document {:keys [upsert write-concern]
+  ([^MongoDatabase db ^String coll ids ^Map document {:keys [upsert write-concern]
                                            :or {upsert false
                                                 write-concern mc/*mongodb-write-concern*}}]
      (check-not-nil! (seq ids) "ids must not be nil or empty")
-     (.update (.getCollection db (name coll))
-              (to-db-object {:_id {"$in" ids}})
-              (to-db-object document)
-              upsert
-              true
-              write-concern)))
+     (.updateMany (.getCollection db (name coll))
+                  (to-bson-document {:_id {"$in" ids}})
+                  (to-bson-document document)
+                  upsert
+                  true
+                  write-concern)))
 
 
 ;; monger.collection/save
@@ -342,14 +349,16 @@
 
    This function returns write result. If you want to get the exact persisted document back,
    use `save-and-return`."
-  ([^DB db ^String coll ^Map document]
-     (.save (.getCollection db (name coll))
-            (to-db-object document)
-            mc/*mongodb-write-concern*))
-  ([^DB db ^String coll ^Map document ^WriteConcern write-concern]
-     (.save (.getCollection db (name coll))
-            (to-db-object document)
-            write-concern)))
+  ([^MongoDatabase db ^String coll ^Map document]
+   (.replaceOne (.getCollection db (name coll))
+                (to-bson-document {:_id (get document :_id)})
+                (to-bson-document document)))
+            ;;mc/*mongodb-write-concern*))
+  ([^MongoDatabase db ^String coll ^Map document ^WriteConcern write-concern]
+   (.replaceOne (.getCollection db (name coll))
+                (to-bson-document {:_id (get document :_id)})
+                (to-bson-document document))))
+                ;;write-concern)))
 
 (defn ^clojure.lang.IPersistentMap save-and-return
   "Saves an object to the given collection (does insert or update based on the object _id).
@@ -361,9 +370,9 @@
    case of an insert.
 
    If you want to get write result back, use `save`."
-  ([^DB db ^String coll ^Map document]
+  ([^MongoDatabase db ^String coll ^Map document]
      (save-and-return db coll document ^WriteConcern mc/*mongodb-write-concern*))
-  ([^DB db ^String coll ^Map document ^WriteConcern write-concern]
+  ([^MongoDatabase db ^String coll ^Map document ^WriteConcern write-concern]
      ;; see the comment in insert-and-return. Here we additionally need to make sure to not scrap the :_id key if
      ;; it is already present. MK.
      (let [doc (merge {:_id (ObjectId.)} document)]
@@ -373,25 +382,26 @@
 
 ;; monger.collection/remove
 
-(defn ^WriteResult remove
+(defn ^DeleteResult remove
   "Removes objects from the database."
-  ([^DB db ^String coll]
-     (.remove (.getCollection db (name coll)) (to-db-object {})))
-  ([^DB db ^String coll ^Map conditions]
-     (.remove (.getCollection db (name coll)) (to-db-object conditions))))
+  ;; Note: Check if there is scope for the use of deleteOne as well
+  ([^MongoDatabase db ^String coll]
+     (.deleteMany (.getCollection db (name coll)) (to-bson-document {})))
+  ([^MongoDatabase db ^String coll ^Map conditions]
+     (.deleteMany (.getCollection db (name coll)) (to-bson-document conditions))))
 
 
-(defn ^WriteResult remove-by-id
+(defn ^DeleteResult remove-by-id
   "Removes a single document with given id"
-  [^DB db ^String coll id]
+  [^MongoDatabase db ^String coll id]
   (check-not-nil! id "id must not be nil")
   (let [coll (.getCollection db (name coll))]
-    (.remove coll (to-db-object {:_id id}))))
+    (.deleteOne coll (to-bson-document {:_id id}))))
 
 (defn purge-many
   "Purges (removes all documents from) multiple collections. Intended
    to be used in test environments."
-  [^DB db xs]
+  [^MongoDatabase db xs]
   (doseq [coll xs]
     (remove db coll)))
 
@@ -401,12 +411,12 @@
 
 (defn create-index
   "Forces creation of index on a set of fields, if one does not already exists."
-  ([^DB db ^String coll ^Map keys]
+  ([^MongoDatabase db ^String coll ^Map keys]
      (.createIndex (.getCollection db (name coll)) (as-field-selector keys)))
-  ([^DB db ^String coll ^Map keys ^Map options]
+  ([^MongoDatabase db ^String coll ^Map keys ^Map options]
      (.createIndex (.getCollection db (name coll))
                    (as-field-selector keys)
-                   (to-db-object options))))
+                   (to-bson-document options))))
 
 
 ;;
@@ -421,13 +431,13 @@
 
    :unique (boolean) to create a unique index
    :name (string) to specify a custom index name and not rely on the generated one"
-  ([^DB db ^String coll ^Map keys]
+  ([^MongoDatabase db ^String coll ^Map keys]
      (.createIndex (.getCollection db (name coll)) (as-field-selector keys)))
-  ([^DB db ^String coll ^Map keys ^Map options]
+  ([^MongoDatabase db ^String coll ^Map keys ^Map options]
      (.createIndex (.getCollection db (name coll))
                    (as-field-selector keys)
-                   (to-db-object options)))
-  ([^DB db ^String coll ^Map keys ^String index-name unique?]
+                   (to-bson-document options)))
+  ([^MongoDatabase db ^String coll ^Map keys ^String index-name unique?]
      (.createIndex (.getCollection db (name coll))
                    (as-field-selector keys)
                    index-name
@@ -440,7 +450,7 @@
 
 (defn indexes-on
   "Return a list of the indexes for this collection."
-  [^DB db ^String coll]
+  [^MongoDatabase db ^String coll]
   (from-db-object (.getIndexInfo (.getCollection db (name coll))) true))
 
 
@@ -450,14 +460,14 @@
 
 (defn drop-index
   "Drops an index from this collection."
-  [^DB db ^String coll idx]
+  [^MongoDatabase db ^String coll idx]
   (if (string? idx)
     (.dropIndex (.getCollection db (name coll)) ^String idx)
-    (.dropIndex (.getCollection db (name coll)) (to-db-object idx))))
+    (.dropIndex (.getCollection db (name coll)) (to-bson-document idx))))
 
 (defn drop-indexes
   "Drops all indixes from this collection."
-  [^DB db ^String coll]
+  [^MongoDatabase db ^String coll]
   (.dropIndexes (.getCollection db (name coll))))
 
 
@@ -468,7 +478,7 @@
 
 (defn exists?
   "Checks weather collection with certain name exists."
-  ([^DB db ^String coll]
+  ([^MongoDatabase db ^String coll]
      (.collectionExists db coll)))
 
 (defn create
@@ -479,20 +489,20 @@
    :capped (pass true to create a capped collection)
    :max (number of documents)
    :size (max allowed size of the collection, in bytes)"
-  [^DB db ^String coll ^Map options]
-  (.createCollection db coll (to-db-object options)))
+  [^MongoDatabase db ^String coll ^Map options]
+  (.createCollection db coll (to-bson-document options)))
 
 (defn drop
   "Deletes collection from database."
-  [^DB db ^String coll]
+  [^MongoDatabase db ^String coll]
   (.drop (.getCollection db (name coll))))
 
 (defn rename
   "Renames collection."
-  ([^DB db ^String from, ^String to]
-     (.rename (.getCollection db from) to))
-  ([^DB db ^String from ^String to drop-target?]
-     (.rename (.getCollection db from) to drop-target?)))
+  ([^MongoDatabase db ^String from, ^String to]
+     (.renameCollection (.getCollection db from) to))
+  ([^MongoDatabase db ^String from ^String to drop-target?]
+     (.renameCollection (.getCollection db from) to drop-target?)))
 
 ;;
 ;; Map/Reduce
@@ -500,12 +510,12 @@
 
 (defn map-reduce
   "Performs a map reduce operation"
-  ([^DB db ^String coll ^String js-mapper ^String js-reducer ^String output ^Map query]
+  ([^MongoDatabase db ^String coll ^String js-mapper ^String js-reducer ^String output ^Map query]
      (let [coll (.getCollection db (name coll))]
-       (.mapReduce coll js-mapper js-reducer output (to-db-object query))))
-  ([^DB db ^String coll ^String js-mapper ^String js-reducer ^String output ^MapReduceCommand$OutputType output-type ^Map query]
+       (.mapReduce coll js-mapper js-reducer output (to-bson-document query))))
+  ([^MongoDatabase db ^String coll ^String js-mapper ^String js-reducer ^String output ^MapReduceCommand$OutputType output-type ^Map query]
      (let [coll (.getCollection db (name coll))]
-       (.mapReduce coll js-mapper js-reducer output output-type (to-db-object query)))))
+       (.mapReduce coll js-mapper js-reducer output output-type (to-bson-document query)))))
 
 
 ;;
@@ -514,10 +524,10 @@
 
 (defn distinct
   "Finds distinct values for a key"
-  ([^DB db ^String coll ^String key]
-     (.distinct (.getCollection db (name coll)) ^String (to-db-object key)))
-  ([^DB db ^String coll ^String key ^Map query]
-     (.distinct (.getCollection db (name coll)) ^String (to-db-object key) (to-db-object query))))
+  ([^MongoDatabase db ^String coll ^String key]
+     (.distinct (.getCollection db (name coll)) ^String (to-bson-document key)))
+  ([^MongoDatabase db ^String coll ^String key ^Map query]
+     (.distinct (.getCollection db (name coll)) ^String (to-bson-document key) (to-bson-document query))))
 
 
 ;;
@@ -544,10 +554,10 @@
   :keywordize option that control if resulting map keys will be turned into keywords, default is true.
 
   See http://docs.mongodb.org/manual/applications/aggregation/ to learn more."
-  [^DB db ^String coll stages & opts]
+  [^MongoDatabase db ^String coll stages & opts]
   (let [coll (.getCollection db coll)
         agg-opts (build-aggregation-options opts)
-        pipe (into-array-list (to-db-object stages))
+        pipe (into-array-list (to-bson-document stages))
         res (.aggregate coll pipe agg-opts)
         {:keys [^Boolean keywordize]
          :or            {keywordize true}} opts]
@@ -557,10 +567,10 @@
   "Returns the explain plan for an aggregation query. MongoDB 2.2+ only.
 
   See http://docs.mongodb.org/manual/applications/aggregation/ to learn more."
-  [^DB db ^String coll stages & opts]
+  [^MongoDatabase db ^String coll stages & opts]
   (let [coll (.getCollection db coll)
         agg-opts (build-aggregation-options opts)
-        pipe (into-array-list (to-db-object stages))
+        pipe (into-array-list (to-bson-document stages))
         res (.explainAggregate coll pipe agg-opts)]
     (from-db-object res true)))
 ;;

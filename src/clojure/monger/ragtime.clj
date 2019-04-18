@@ -39,7 +39,8 @@
             [monger.collection :as mc]
             [monger.query :refer [with-collection find sort]])
   (:import java.util.Date
-           [com.mongodb DB WriteConcern]))
+           [com.mongodb WriteConcern]
+           [com.mongodb.client MongoDatabase]))
 
 
 (def ^{:const true}
@@ -61,5 +62,5 @@
 
 (defn flush-migrations!
   "REMOVES all the information about previously performed migrations"
-  [^DB db]
+  [^MongoDatabase db]
   (mc/remove db migrations-collection))

@@ -45,7 +45,8 @@
    * http://clojuremongodb.info/articles/mapreduce.html"
   (:require monger.core
             [monger.conversion :refer :all])
-  (:import [com.mongodb MongoClient DB DBObject]))
+  (:import [com.mongodb MongoClient DBObject]
+           [com.mongodb.client MongoDatabase]))
 
 
 ;;
@@ -63,43 +64,43 @@
   (monger.core/raw-command (monger.core/admin-db conn) cmd))
 
 (defn collection-stats
-  [^DB database collection]
+  [^MongoDatabase database collection]
   (monger.core/command database {:collstats collection}))
 
 (defn db-stats
-  [^DB database]
+  [^MongoDatabase database]
   (monger.core/command database {:dbStats 1}))
 
 
 (defn reindex-collection
   "Forces an existing collection to be reindexed using the reindexCollection command"
-  [^DB database ^String collection]
+  [^MongoDatabase database ^String collection]
   (monger.core/command database {:reIndex collection}))
 
 (defn rename-collection
   "Changes the name of an existing collection using the renameCollection command"
-  [^DB db ^String from ^String to]
+  [^MongoDatabase db ^String from ^String to]
   (monger.core/command db (sorted-map :renameCollection from :to to)))
 
 (defn convert-to-capped
   "Converts an existing, non-capped collection to a capped collection using the convertToCapped command"
-  [^DB db ^String collection ^long size]
+  [^MongoDatabase db ^String collection ^long size]
   (monger.core/command db (sorted-map :convertToCapped collection :size size)))
 
 (defn empty-capped
   "Removes all documents from a capped collection using the emptycapped command"
-  [^DB db ^String collection]
+  [^MongoDatabase db ^String collection]
   (monger.core/command db {:emptycapped collection}))
 
 
 (defn compact
   "Rewrites and defragments a single collection using the compact command. This also forces all indexes on the collection to be rebuilt"
-  [^DB db ^String collection]
+  [^MongoDatabase db ^String collection]
   (monger.core/command db {:compact collection}))
 
 
 (defn server-status
-  [^DB db]
+  [^MongoDatabase db]
   (monger.core/command db {:serverStatus 1}))
 
 

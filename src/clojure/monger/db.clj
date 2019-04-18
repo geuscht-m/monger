@@ -36,7 +36,8 @@
 (ns monger.db
   "Functions that provide operations on databases"
   (:refer-clojure :exclude [find remove count drop distinct empty?])
-  (:import [com.mongodb Mongo DB DBCollection])
+  (:import [com.mongodb Mongo DBCollection]
+           [com.mongodb.client MongoDatabase])
   (:require monger.core
             [monger.conversion :refer :all]))
 
@@ -47,16 +48,16 @@
 
 (defn add-user
   "Adds a new user for this db"
-  [^DB db ^String username ^chars password]
+  [^MongoDatabase db ^String username ^chars password]
   (.addUser db username password))
 
 
 (defn drop-db
   "Drops the currently set database (via core/set-db) or the specified database."
-  [^DB db]
-  (.dropDatabase db))
+  [^MongoDatabase db]
+  (.drop db))
 
 (defn get-collection-names
   "Returns a set containing the names of all collections in this database."
-  ([^DB db]
-     (set (.getCollectionNames db))))
+  ([^MongoDatabase db]
+     (set (.listCollectionNames db))))
