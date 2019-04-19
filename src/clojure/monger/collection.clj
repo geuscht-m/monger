@@ -56,7 +56,7 @@
             AggregationOptions AggregationOptions$OutputMode]
            [com.mongodb.client MongoDatabase MongoCollection MongoCursor FindIterable]
            [com.mongodb.client.result DeleteResult UpdateResult]
-           com.mongodb.client.model.UpdateOptions
+           [com.mongodb.client.model FindOneAndUpdateOptions UpdateOptions]
            [java.util List Map]
            [java.util.concurrent TimeUnit]
            [clojure.lang IPersistentMap ISeq]
@@ -183,9 +183,9 @@
      (first (.find (.getCollection db (name coll))
                    (to-bson-document ref))))
   ([^MongoDatabase db ^String coll ^Map ref fields]
-     (first (.find (.getCollection db (name coll))
-                   (to-bson-document ref)
-                   ^Document (as-field-selector fields)))))
+     (first (.projection (.find (.getCollection db (name coll))
+                                (to-bson-document ref))
+                                ^Document (as-field-selector fields)))))
 
 (defn ^IPersistentMap find-one-as-map
   "Returns a single object converted to Map from this collection matching the query."
@@ -212,10 +212,11 @@
                                                         keywordize true}}]
      (let [coll (.getCollection db (name coll))
            maybe-fields (when fields (as-field-selector fields))
-           maybe-sort (when sort (to-bson-document sort))]
-       (from-db-object
-        ^DBObject (.findAndModify ^DBCollection coll (to-bson-document conditions) maybe-fields maybe-sort remove
-                                  (to-bson-document document) return-new upsert) keywordize))))
+           maybe-sort (when sort (to-bson-document sort))
+           options (to-bson-document ((.upsert (.sort (FindOneAndUpdateOptions.) sort) upsert)))] ;; TODO: Needs to set returnDocument
+       (from-bson-document
+        ^Document (.findOneAndUpdate ^MongoCollection coll (to-bson-document conditions) ;;maybe-fields maybe-sort remove
+                                  (to-bson-document document) options) keywordize))))
 
 ;;
 ;; monger.collection/find-by-id
