@@ -483,7 +483,7 @@
   "Checks weather collection with certain name exists."
   ([^MongoDatabase db ^String coll]
    ;;(.collectionExists db coll)))
-   (some #(= coll %) (.listCollectionNames db))))
+   (some? (some #(= coll %) (.listCollectionNames db)))))
 
 (defn create
   "Creates a collection with a given name and options.
