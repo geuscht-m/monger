@@ -318,13 +318,16 @@
   ([^MongoDatabase db ^String coll id ^Map document {:keys [upsert write-concern]
                                           :or {upsert false
                                                write-concern mc/*mongodb-write-concern*}}]
+   (let [options (.upsert (UpdateOptions.) upsert)]
      (check-not-nil! id "id must not be nil")
      (.updateOne (.getCollection db (name coll))
                  (to-bson-document {:_id id})
                  (to-bson-document document)
-                 upsert
-                 false
-                 write-concern)))
+                 options
+                 ;;upsert
+                 ;;false
+                 ;;write-concern)))
+                 ))))
 
 (defn ^UpdateResult update-by-ids
   "Update documents by given ids"
@@ -333,13 +336,16 @@
   ([^MongoDatabase db ^String coll ids ^Map document {:keys [upsert write-concern]
                                            :or {upsert false
                                                 write-concern mc/*mongodb-write-concern*}}]
+   (let [options (.upsert (UpdateOptions.) upsert)]
      (check-not-nil! (seq ids) "ids must not be nil or empty")
      (.updateMany (.getCollection db (name coll))
                   (to-bson-document {:_id {"$in" ids}})
                   (to-bson-document document)
-                  upsert
-                  true
-                  write-concern)))
+                  options
+                  ;;upsert
+                  ;;true
+                  ;;write-concern)))
+                  ))))
 
 
 ;; monger.collection/save
