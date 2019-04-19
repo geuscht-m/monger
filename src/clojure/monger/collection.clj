@@ -56,6 +56,7 @@
             AggregationOptions AggregationOptions$OutputMode]
            [com.mongodb.client MongoDatabase MongoCollection MongoCursor FindIterable]
            [com.mongodb.client.result DeleteResult UpdateResult]
+           com.mongodb.client.model.UpdateOptions
            [java.util List Map]
            [java.util.concurrent TimeUnit]
            [clojure.lang IPersistentMap ISeq]
@@ -290,9 +291,10 @@
      (.updateMany (.getCollection db (name coll))
               (to-bson-document conditions)
               (to-bson-document document)
-              upsert
-              multi
-              write-concern)))
+              (.upsert (UpdateOptions.) true)
+              ;;multi
+              ;;write-concern)))
+              )))
 
 (defn ^UpdateResult upsert
   "Performs an upsert.
@@ -558,10 +560,12 @@
   (let [coll (.getCollection db coll)
         agg-opts (build-aggregation-options opts)
         pipe (into-array-list (to-bson-document stages))
-        res (.aggregate coll pipe agg-opts)
+        ;;res (.aggregate coll pipe agg-opts)
+        res (.aggregate coll pipe)   ;; TODO: Check what is necessary for agg-opts
         {:keys [^Boolean keywordize]
          :or            {keywordize true}} opts]
-    (map #(from-db-object % keywordize) (iterator-seq res))))
+    ;;(map #(from-db-object % keywordize) (iterator-seq res))))
+    (map #(from-bson-document % keywordize) res)))
 
 (defn explain-aggregate
   "Returns the explain plan for an aggregation query. MongoDB 2.2+ only.
@@ -570,9 +574,10 @@
   [^MongoDatabase db ^String coll stages & opts]
   (let [coll (.getCollection db coll)
         agg-opts (build-aggregation-options opts)
-        pipe (into-array-list (to-bson-document stages))
-        res (.explainAggregate coll pipe agg-opts)]
-    (from-db-object res true)))
+        pipe (into-array-list (to-bson-document stages) (to-bson-document {:explain true}))
+        ;;res (.explainAggregate coll pipe agg-opts)]
+        res (.aggregate coll pipe)]
+    (from-bson-document res true)))
 ;;
 ;; Misc
 ;;
