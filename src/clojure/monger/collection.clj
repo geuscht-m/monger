@@ -56,7 +56,7 @@
             AggregationOptions AggregationOptions$OutputMode]
            [com.mongodb.client MongoDatabase MongoCollection MongoCursor FindIterable]
            [com.mongodb.client.result DeleteResult UpdateResult]
-           [com.mongodb.client.model FindOneAndUpdateOptions UpdateOptions]
+           [com.mongodb.client.model CreateCollectionOptions FindOneAndUpdateOptions UpdateOptions]
            [java.util List Map]
            [java.util.concurrent TimeUnit]
            [clojure.lang IPersistentMap ISeq]
@@ -213,10 +213,10 @@
      (let [coll (.getCollection db (name coll))
            maybe-fields (when fields (as-field-selector fields))
            maybe-sort (when sort (to-bson-document sort))
-           options (to-bson-document ((.upsert (.sort (FindOneAndUpdateOptions.) sort) upsert)))] ;; TODO: Needs to set returnDocument
+           options ((.upsert (.sort (FindOneAndUpdateOptions.) sort) upsert))] ;; TODO: Needs to set returnDocument
        (from-bson-document
-        ^Document (.findOneAndUpdate ^MongoCollection coll (to-bson-document conditions) ;;maybe-fields maybe-sort remove
-                                  (to-bson-document document) options) keywordize))))
+        (.findOneAndUpdate ^MongoCollection coll (to-bson-document conditions) ;;maybe-fields maybe-sort remove
+                           (to-bson-document document) options) keywordize))))
 
 ;;
 ;; monger.collection/find-by-id
@@ -292,7 +292,7 @@
      (.updateMany (.getCollection db (name coll))
               (to-bson-document conditions)
               (to-bson-document document)
-              (.upsert (UpdateOptions.) true)
+              (.upsert (UpdateOptions.) upsert)
               ;;multi
               ;;write-concern)))
               )))
@@ -482,7 +482,8 @@
 (defn exists?
   "Checks weather collection with certain name exists."
   ([^MongoDatabase db ^String coll]
-     (.collectionExists db coll)))
+   ;;(.collectionExists db coll)))
+   (some #(= coll %) (.listCollectionNames db))))
 
 (defn create
   "Creates a collection with a given name and options.
@@ -493,7 +494,8 @@
    :max (number of documents)
    :size (max allowed size of the collection, in bytes)"
   [^MongoDatabase db ^String coll ^Map options]
-  (.createCollection db coll (to-bson-document options)))
+  (let [createOpt (.capped (CreateCollectionOptions.) (get options :capped))]
+    (.createCollection db coll createOpt)))
 
 (defn drop
   "Deletes collection from database."
