@@ -61,7 +61,7 @@
            [java.util.concurrent TimeUnit]
            [clojure.lang IPersistentMap ISeq]
            org.bson.types.ObjectId
-           org.bson.Document)
+           [org.bson BsonString Document])
   (:require [monger.core :as mc]
             [monger.result :as mres]
             [monger.conversion :refer :all]
@@ -537,9 +537,9 @@
 (defn distinct
   "Finds distinct values for a key"
   ([^MongoDatabase db ^String coll ^String key]
-     (.distinct (.getCollection db (name coll)) ^String (to-bson-document key)))
+     (.distinct (.getCollection db (name coll)) ^String (name key) Document))
   ([^MongoDatabase db ^String coll ^String key ^Map query]
-     (.distinct (.getCollection db (name coll)) ^String (to-bson-document key) (to-bson-document query))))
+     (.distinct (.getCollection db (name coll)) ^String (name key) (to-bson-document query) Document))) ;; TODO - passing dummy Document here to match correct function signature for distinct
 
 
 ;;
