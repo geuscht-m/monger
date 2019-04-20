@@ -56,7 +56,7 @@
             AggregationOptions AggregationOptions$OutputMode]
            [com.mongodb.client MongoDatabase MongoCollection MongoCursor FindIterable]
            [com.mongodb.client.result DeleteResult UpdateResult]
-           [com.mongodb.client.model CreateCollectionOptions FindOneAndUpdateOptions UpdateOptions]
+           [com.mongodb.client.model CreateCollectionOptions FindOneAndUpdateOptions UpdateOptions IndexOptions]
            [java.util List Map]
            [java.util.concurrent TimeUnit]
            [clojure.lang IPersistentMap ISeq]
@@ -443,9 +443,10 @@
   ([^MongoDatabase db ^String coll ^Map keys]
      (.createIndex (.getCollection db (name coll)) (as-field-selector keys)))
   ([^MongoDatabase db ^String coll ^Map keys ^Map options]
+   (let [create-options (.name (.unique (IndexOptions.) (get options :unique)) (get options :name))] ;; TODO - Add/test support for :name
      (.createIndex (.getCollection db (name coll))
                    (as-field-selector keys)
-                   (to-bson-document options)))
+                   create-options)))
   ([^MongoDatabase db ^String coll ^Map keys ^String index-name unique?]
      (.createIndex (.getCollection db (name coll))
                    (as-field-selector keys)
@@ -460,7 +461,7 @@
 (defn indexes-on
   "Return a list of the indexes for this collection."
   [^MongoDatabase db ^String coll]
-  (from-db-object (.getIndexInfo (.getCollection db (name coll))) true))
+  (.listIndexes (.getCollection db (name coll))))
 
 
 ;;
