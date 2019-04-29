@@ -447,10 +447,10 @@
                    (as-field-selector keys)
                    create-options)))
   ([^MongoDatabase db ^String coll ^Map keys ^String index-name unique?]
-     (.createIndex (.getCollection db (name coll))
-                   (as-field-selector keys)
-                   index-name
-                   unique?)))
+     (let [index-opts (.unique (.name (IndexOptions.) index-name) unique?)]
+       (.createIndex (.getCollection db (name coll))
+                     (as-field-selector keys)
+                     index-opts))))
 
 
 ;;
