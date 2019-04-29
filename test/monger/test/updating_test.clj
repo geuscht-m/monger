@@ -9,7 +9,7 @@
             [monger.result     :as mr]
             [clojure.test :refer :all]
             [monger.operators :refer :all]
-            [monger.conversion :refer [to-db-object]]))
+            [monger.conversion :refer [to-db-object to-bson-document]]))
 
 (let [conn (mg/connect)
       db   (mg/get-db conn "monger-test")]
@@ -34,9 +34,9 @@
           doc          { :created-at date, :data-store "MongoDB", :language "Clojure", :_id doc-id }
           modified-doc { :created-at date, :data-store "MongoDB", :language "Erlang",  :_id doc-id }]
       (mc/insert db collection doc)
-      (is (= (to-db-object doc) (mc/find-by-id db collection doc-id)))
+      (is (= (to-bson-document doc) (mc/find-by-id db collection doc-id)))
       (mc/update db collection { :_id doc-id } { $set { :language "Erlang" } })
-      (is (= (to-db-object modified-doc) (mc/find-by-id db collection doc-id)))))
+      (is (= (to-bson-document modified-doc) (mc/find-by-id db collection doc-id)))))
 
   (deftest ^{:updating true} update-document-by-id-without-upsert-using-update-by-id
     (let [collection "libraries"
@@ -45,9 +45,9 @@
           doc          { :created-at date, :data-store "MongoDB", :language "Clojure", :_id doc-id }
           modified-doc { :created-at date, :data-store "MongoDB", :language "Erlang",  :_id doc-id }]
       (mc/insert db collection doc)
-      (is (= (to-db-object doc) (mc/find-by-id db collection doc-id)))
+      (is (= (to-bson-document doc) (mc/find-by-id db collection doc-id)))
       (mc/update-by-id db collection doc-id { $set { :language "Erlang" } })
-      (is (= (to-db-object modified-doc) (mc/find-by-id db collection doc-id)))))
+      (is (= (to-bson-document modified-doc) (mc/find-by-id db collection doc-id)))))
 
   (deftest ^{:updating true} update-nested-document-fields-without-upsert-using-update-by-id
     (let [collection "libraries"
@@ -56,9 +56,9 @@
           doc          { :created-at date :data-store "MongoDB" :language { :primary "Clojure" } :_id doc-id }
           modified-doc { :created-at date :data-store "MongoDB" :language { :primary "Erlang"  } :_id doc-id }]
       (mc/insert db collection doc)
-      (is (= (to-db-object doc) (mc/find-by-id db collection doc-id)))
+      (is (= (to-bson-document doc) (mc/find-by-id db collection doc-id)))
       (mc/update-by-id db collection doc-id { $set { "language.primary" "Erlang" }})
-      (is (= (to-db-object modified-doc) (mc/find-by-id db collection doc-id)))))
+      (is (= (to-bson-document modified-doc) (mc/find-by-id db collection doc-id)))))
 
 
   (deftest ^{:updating true} update-multiple-documents
@@ -93,7 +93,7 @@
 
   (deftest ^{:updating true} save-a-new-basic-db-object
     (let [collection "people"
-          doc        (to-db-object {:name "Joe" :age 30})]
+          doc        (to-bson-document {:name "Joe" :age 30})]
       (is (nil? (mu/get-id doc)))
       (mc/save db "people" doc WriteConcern/SAFE)
       (is (not (nil? (mu/get-id doc))))))
@@ -152,7 +152,7 @@
       (is (= 1 (mc/count db collection)))
       (is (mr/updated-existing? (mc/update db collection { :language "Clojure" } modified-doc {:multi false :upsert true})))
       (is (= 1 (mc/count db collection)))
-      (is (= (to-db-object modified-doc) (mc/find-by-id db collection doc-id)))
+      (is (= (to-bson-document modified-doc) (mc/find-by-id db collection doc-id)))
       (mc/remove db collection)))
 
   (deftest ^{:updating true} upsert-a-document-using-upsert
@@ -166,5 +166,5 @@
       (is (= 1 (mc/count db collection)))
       (is (mr/updated-existing? (mc/upsert db collection {:language "Clojure"} modified-doc {:multi false})))
       (is (= 1 (mc/count db collection)))
-      (is (= (to-db-object modified-doc) (mc/find-by-id db collection doc-id)))
+      (is (= (to-bson-document modified-doc) (mc/find-by-id db collection doc-id)))
       (mc/remove db collection))))

@@ -1,6 +1,7 @@
 (ns monger.test.regular-finders-test
-  (:import  [com.mongodb WriteResult WriteConcern DBCursor DBObject]
+  (:import  [com.mongodb WriteResult WriteConcern DBCursor]
             org.bson.types.ObjectId
+            org.bson.Document
             java.util.Date)
   (:require [monger.core :as mg]
             [monger.collection :as mc]
@@ -66,9 +67,9 @@
           doc        { :data-store "MongoDB", :language "Clojure", :_id doc-id }
           _          (mc/insert db collection doc)
           loaded     (mc/find-one db collection { :language "Clojure" } [:language])]
-      (is (nil? (.get ^DBObject loaded "data-store")))
+      (is (nil? (.get ^Document loaded "data-store")))
       (is (= doc-id (mu/get-id loaded)))
-      (is (= "Clojure" (.get ^DBObject loaded "language")))))
+      (is (= "Clojure" (.get ^Document loaded "language")))))
 
 
   (deftest find-one-partial-document-using-field-negation-when-collection-has-matches
@@ -76,7 +77,7 @@
           doc-id           (mu/random-uuid)
           doc              { :data-store "MongoDB", :language "Clojure", :_id doc-id }
           _                (mc/insert db collection doc)
-          ^DBObject loaded (mc/find-one db collection { :language "Clojure" } {:data-store 0 :_id 0})]
+          ^Document loaded (mc/find-one db collection { :language "Clojure" } {:data-store 0 :_id 0})]
       (is (nil? (.get loaded "data-store")))
       (is (nil? (.get loaded "_id")))
       (is (nil? (mu/get-id loaded)))
@@ -197,7 +198,7 @@
   (deftest find-full-document-when-collection-is-empty
     (let [collection "regular_finders_docs"
           cursor     (mc/find db collection)]
-      (is (empty? (iterator-seq cursor)))))
+      (is (empty? (seq cursor)))))
 
   (deftest find-document-seq-when-collection-is-empty
     (let [collection "regular_finders_docs"]

@@ -1,6 +1,7 @@
 (ns monger.test.inserting-test
-  (:import  [com.mongodb WriteResult WriteConcern DBCursor DBObject DBRef]
+  (:import  [com.mongodb WriteResult WriteConcern DBCursor DBRef]
             org.bson.types.ObjectId
+            org.bson.Document
             java.util.Date)
   (:require [monger.core        :as mg]
             [monger.util        :as mu]
@@ -54,8 +55,8 @@
 
   (deftest insert-a-basic-db-object-without-id-and-with-default-write-concern
     (let [collection "people"
-          doc        (to-db-object {:name "Joe" :age 30})]
-      (is (nil? (.get ^DBObject doc "_id")))
+          doc        (to-bson-document {:name "Joe" :age 30})]
+      (is (nil? (.get ^Document doc "_id")))
       (mc/insert db collection doc)
       (is (not (nil? (monger.util/get-id doc))))))
 

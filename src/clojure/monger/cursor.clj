@@ -41,7 +41,7 @@
             [java.lang Integer]
             [clojure.lang Keyword])
   (:require [monger.core]
-            [monger.conversion :refer [to-db-object from-db-object as-field-selector]]))
+            [monger.conversion :refer [to-bson-document from-bson-document as-field-selector]]))
 
 (defn ^MongoCursor make-db-cursor 
   "initializes new db-cursor."
@@ -50,10 +50,10 @@
   ([^MongoDatabase db ^String coll ^Map ref]
      (make-db-cursor db coll ref {}))
   ([^MongoDatabase db ^String coll ^Map ref fields] 
-    (.find
-      (.getCollection db (name coll))
-      (to-db-object ref)
-      (as-field-selector fields)))) 
+    (.iterator (.projection (.find
+                             (.getCollection db (name coll))
+                             (to-bson-document ref))
+                            (as-field-selector fields)))))
 
 (def cursor-options {:awaitdata Bytes/QUERYOPTION_AWAITDATA
                      ;;:exhaust   Bytes/QUERYOPTION_EXHAUST - not human settable
@@ -134,7 +134,7 @@
 (defmulti format-as (fn [db-cur as] as))
 
 (defmethod format-as :map [db-cur as]
-  (map #(from-db-object %1 true) db-cur))
+  (map #(from-bson-document %1 true) db-cur))
 
 (defmethod format-as :seq [db-cur as]
   (seq db-cur))

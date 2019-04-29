@@ -1,6 +1,7 @@
 (ns monger.test.map-reduce-test
-  (:import  [com.mongodb WriteResult WriteConcern DBCursor DBObject MapReduceOutput MapReduceCommand MapReduceCommand$OutputType]
+  (:import  [com.mongodb WriteResult WriteConcern DBCursor MapReduceOutput MapReduceCommand MapReduceCommand$OutputType]
             org.bson.types.ObjectId
+            org.bson.Document
             java.util.Date)
   (:require [monger.collection       :as mc]
             [monger.core             :as mg]
@@ -35,14 +36,14 @@
       (mc/remove db collection)
       (mc/insert-batch db collection batch)
       (let [output  (mc/map-reduce db collection mapper reducer nil MapReduceCommand$OutputType/INLINE {})
-            results (from-db-object ^DBObject (.results ^MapReduceOutput output) true)]
+            results (from-bson-document ^Document (.results ^MapReduceOutput output) true)]
         (is (= expected results))))
 
     (deftest test-basic-map-reduce-example-that-replaces-named-collection
       (mc/remove db collection)
       (mc/insert-batch db collection batch)
       (let [output  (mc/map-reduce db collection mapper reducer "mr_outputs" {})
-            results (from-db-object ^DBObject (.results ^MapReduceOutput output) true)]
+            results (from-bson-document ^Document (.results ^MapReduceOutput output) true)]
         (is (= 3 (mg/count results)))
         (is (= expected
                (map #(from-db-object % true) (seq results))))

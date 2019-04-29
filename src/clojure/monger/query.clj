@@ -42,7 +42,9 @@
             [monger.cursor :as cursor :refer [add-options]]
             [monger.conversion :refer :all]
             [monger.operators :refer :all])
-  (:import [com.mongodb DB DBCollection DBObject DBCursor ReadPreference]
+  (:import [com.mongodb DBCursor ReadPreference]
+           [com.mongodb.client MongoDatabase MongoCollection FindIterable]
+           org.bson.Document
            [java.util.concurrent TimeUnit]
            java.util.List))
 
@@ -82,11 +84,11 @@
       :snapshot          false
       :keywordize-fields true
       })
-  ([^DBCollection coll]
+  ([^MongoCollection coll]
      (merge (empty-query) { :collection coll })))
 
 (defn exec
-  [{:keys [^DBCollection collection
+  [{:keys [^MongoCollection collection
            query
            fields
            skip
@@ -100,22 +102,22 @@
            max-time
            options]
     :or { limit 0 batch-size 256 skip 0 } }]
-  (with-open [cursor (doto (.find collection (to-db-object query) (as-field-selector fields))
+  (with-open [cursor (doto (.projection (.find collection (to-bson-document query)) (as-field-selector fields))
                        (.limit limit)
                        (.skip  skip)
-                       (.sort  (to-db-object sort))
+                       (.sort  (to-bson-document sort))
                        (.batchSize batch-size))]
     (when snapshot
       (.snapshot cursor))
     (when hint
-      (.hint cursor (to-db-object hint)))
+      (.hint cursor (to-bson-document hint)))
     (when read-preference
       (.setReadPreference cursor read-preference))
     (when max-time
       (.maxTime cursor max-time TimeUnit/MILLISECONDS))
     (when options
       (add-options cursor options))
-    (map (fn [x] (from-db-object x keywordize-fields))
+    (map (fn [x] (from-bson-document x keywordize-fields))
          cursor)))
 
 ;;
@@ -177,7 +179,7 @@
 (defmacro with-collection
   [db coll & body]
   `(let [coll# ~coll
-         ^DB db# ~db
+         ^MongoDatabase db# ~db
          db-coll# (if (string? coll#)
                     (.getCollection db# coll#)
                     coll#)
