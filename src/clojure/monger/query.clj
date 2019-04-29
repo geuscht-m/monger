@@ -102,7 +102,7 @@
            max-time
            options]
     :or { limit 0 batch-size 256 skip 0 } }]
-  (with-open [cursor (doto (.projection (.find collection (to-bson-document query)) (as-field-selector fields))
+  (with-open [cursor (doto (.iterator (.projection (.find collection (to-bson-document query)) (as-field-selector fields)))
                        (.limit limit)
                        (.skip  skip)
                        (.sort  (to-bson-document sort))
