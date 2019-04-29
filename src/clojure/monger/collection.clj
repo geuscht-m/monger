@@ -53,10 +53,10 @@
   (:refer-clojure :exclude [find remove count drop distinct empty? any? update])
   (:import [com.mongodb Mongo DB DBCollection WriteResult DBObject WriteConcern
             DBCursor MapReduceCommand MapReduceCommand$OutputType AggregationOutput
-            AggregationOptions AggregationOptions$OutputMode]
+            AggregationOptions AggregationOptions$OutputMode MongoNamespace]
            [com.mongodb.client MongoDatabase MongoCollection MongoCursor FindIterable]
            [com.mongodb.client.result DeleteResult UpdateResult]
-           [com.mongodb.client.model CreateCollectionOptions FindOneAndUpdateOptions UpdateOptions IndexOptions]
+           [com.mongodb.client.model CreateCollectionOptions FindOneAndUpdateOptions UpdateOptions IndexOptions ReturnDocument]
            [java.util List Map]
            [java.util.concurrent TimeUnit]
            [clojure.lang IPersistentMap ISeq]
@@ -91,7 +91,7 @@
      ;;         ^WriteConcern mc/*mongodb-write-concern*))
   ([^MongoDatabase db ^String coll document ^WriteConcern concern]
      (.insertOne (.getCollection db (name coll))
-              (to-bson-document document))))
+              ^Document (to-bson-document document))))
               ;;concern)))
 
 
@@ -131,19 +131,19 @@
 ;; monger.collection/find
 ;;
 
-(defn ^FindIterable find
+(defn ^MongoCursor find
   "Queries for objects in this collection.
    This function returns DBCursor, which allows you to iterate over DBObjects.
    If you want to manipulate clojure sequences maps, use find-maps."
   ([^MongoDatabase db ^String coll]
-     (.find (.getCollection db (name coll))))
+     (.iterator (.find (.getCollection db (name coll)))))
   ([^MongoDatabase db ^String coll ^Map ref]
-     (.find (.getCollection db (name coll))
-            (to-bson-document ref)))
+     (.iterator (.find (.getCollection db (name coll))
+                       (to-bson-document ref))))
   ([^MongoDatabase db ^String coll ^Map ref fields]
-     (.find (.getCollection db (name coll))
-            (to-bson-document ref)
-            (as-field-selector fields))))
+     (.iterator (.projection (.find (.getCollection db (name coll))
+                                    (to-bson-document ref))
+                             (as-field-selector fields)))))
 
 (defn find-maps
   "Queries for objects in this collection.
@@ -151,18 +151,18 @@
    If you want to work directly with DBObject, use find."
   ([^MongoDatabase db ^String coll]
      (with-open [dbc (find db coll)]
-       (map (fn [x] (from-db-object x true)) dbc)))
+       (map (fn [x] (from-bson-document x true)) (seq dbc))))
   ([^MongoDatabase db ^String coll ^Map ref]
      (with-open [dbc (find db coll ref)]
-       (map (fn [x] (from-db-object x true)) dbc)))
+       (map (fn [x] (from-bson-document x true)) (seq dbc))))
   ([^MongoDatabase db ^String coll ^Map ref fields]
      (find-maps db coll ref fields true))
   ([^MongoDatabase db ^String coll ^Map ref fields keywordize]
      (with-open [dbc (find db coll ref fields)]
-       (map (fn [x] (from-db-object x keywordize)) dbc))))
+       (map (fn [x] (from-bson-document x keywordize)) (seq dbc)))))
 
 (defn find-seq
-  "Queries for objects in this collection, returns ISeq of DBObjects."
+  "Queries for objects in this collection, returns ISeq of Documents."
   ([^MongoDatabase db ^String coll]
      (with-open [dbc (find db coll)]
        (seq dbc)))
@@ -185,16 +185,16 @@
   ([^MongoDatabase db ^String coll ^Map ref fields]
      (first (.projection (.find (.getCollection db (name coll))
                                 (to-bson-document ref))
-                                ^Document (as-field-selector fields)))))
+                         (as-field-selector fields)))))
 
 (defn ^IPersistentMap find-one-as-map
   "Returns a single object converted to Map from this collection matching the query."
   ([^MongoDatabase db ^String coll ^Map ref]
-     (from-db-object ^DBObject (find-one db coll ref) true))
+     (from-bson-document ^Document (find-one db coll ref) true))
   ([^MongoDatabase db ^String coll ^Map ref fields]
-     (from-db-object ^DBObject (find-one db coll ref fields) true))
+     (from-bson-document ^Document (find-one db coll ref fields) true))
   ([^MongoDatabase db ^String coll ^Map ref fields keywordize]
-     (from-db-object ^DBObject (find-one db coll ref fields) keywordize)))
+     (from-bson-document ^Document (find-one db coll ref fields) keywordize)))
 
 
 ;;
@@ -210,13 +210,12 @@
                                                         return-new false
                                                         upsert false
                                                         keywordize true}}]
-     (let [coll (.getCollection db (name coll))
+     (let [^MongoCollection mcoll (.getCollection db (name coll))
            maybe-fields (when fields (as-field-selector fields))
            maybe-sort (when sort (to-bson-document sort))
-           options ((.upsert (.sort (FindOneAndUpdateOptions.) sort) upsert))] ;; TODO: Needs to set returnDocument
+           update-options (.returnDocument (.upsert (.sort (FindOneAndUpdateOptions.) sort) upsert) (if return-new ReturnDocument/AFTER ReturnDocument/BEFORE)) ]
        (from-bson-document
-        (.findOneAndUpdate ^MongoCollection coll (to-bson-document conditions) ;;maybe-fields maybe-sort remove
-                           (to-bson-document document) options) keywordize))))
+        (.findOneAndUpdate mcoll (to-bson-document conditions) (to-bson-document document) update-options) keywordize)))) ;;maybe-fields maybe-sort remove
 
 ;;
 ;; monger.collection/find-by-id
@@ -501,7 +500,7 @@
    :max (number of documents)
    :size (max allowed size of the collection, in bytes)"
   [^MongoDatabase db ^String coll ^Map options]
-  (let [createOpt (.capped (CreateCollectionOptions.) (get options :capped))]
+  (let [createOpt (.sizeInBytes (.capped (CreateCollectionOptions.) (get options :capped)) (get options :size))]
     (.createCollection db coll createOpt)))
 
 (defn drop
@@ -512,9 +511,9 @@
 (defn rename
   "Renames collection."
   ([^MongoDatabase db ^String from, ^String to]
-     (.renameCollection (.getCollection db from) to))
+     (.renameCollection (.getCollection db from) (MongoNamespace. (.getName db) to)))
   ([^MongoDatabase db ^String from ^String to drop-target?]
-     (.renameCollection (.getCollection db from) to drop-target?)))
+     (.renameCollection (.getCollection db from) (MongoNamespace. (.getName db) to) drop-target?)))
 
 ;;
 ;; Map/Reduce
@@ -524,10 +523,13 @@
   "Performs a map reduce operation"
   ([^MongoDatabase db ^String coll ^String js-mapper ^String js-reducer ^String output ^Map query]
      (let [coll (.getCollection db (name coll))]
-       (.mapReduce coll js-mapper js-reducer output (to-bson-document query))))
-  ([^MongoDatabase db ^String coll ^String js-mapper ^String js-reducer ^String output ^MapReduceCommand$OutputType output-type ^Map query]
+       ;;(.mapReduce coll js-mapper js-reducer output (to-bson-document query))))
+       (.mapReduce coll js-mapper js-reducer)))
+  (;;[^MongoDatabase db ^String coll ^String js-mapper ^String js-reducer ^String output ^MapReduceCommand$OutputType output-type ^Map query]
+   [^MongoDatabase db ^String coll ^String js-mapper ^String js-reducer ^String output output-type ^Map query]
      (let [coll (.getCollection db (name coll))]
-       (.mapReduce coll js-mapper js-reducer output output-type (to-bson-document query)))))
+       ;;(.mapReduce coll js-mapper js-reducer output output-type (to-bson-document query)))))
+       (.mapReduce coll js-mapper js-reducer Document)))) ;; TODO: Fix output type setting/map
 
 
 ;;
@@ -584,9 +586,11 @@
   [^MongoDatabase db ^String coll stages & opts]
   (let [coll (.getCollection db coll)
         agg-opts (build-aggregation-options opts)
-        pipe (into-array-list (to-bson-document stages) (to-bson-document {:explain true}))
+        pipe (cons (into-array-list (to-bson-document stages)) (to-bson-document {:explain true}))
         ;;res (.explainAggregate coll pipe agg-opts)]
-        res (.aggregate coll pipe)]
+        ;;res (.aggregate coll pipe)]
+        res nil]
+    (println pipe)
     (from-bson-document res true)))
 ;;
 ;; Misc
