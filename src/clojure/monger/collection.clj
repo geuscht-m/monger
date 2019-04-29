@@ -154,7 +154,7 @@
        (map (fn [x] (from-bson-document x true)) (seq dbc))))
   ([^MongoDatabase db ^String coll ^Map ref]
      (with-open [dbc (find db coll ref)]
-       (map (fn [x] (from-bson-document x true)) (seq dbc))))
+       (map (fn [x] (from-bson-document x true)) (iterator-seq dbc))))
   ([^MongoDatabase db ^String coll ^Map ref fields]
      (find-maps db coll ref fields true))
   ([^MongoDatabase db ^String coll ^Map ref fields keywordize]
@@ -501,7 +501,8 @@
    :size (max allowed size of the collection, in bytes)"
   [^MongoDatabase db ^String coll ^Map options]
   (let [createOpt (.sizeInBytes (.capped (CreateCollectionOptions.) (get options :capped)) (get options :size))]
-    (.createCollection db coll createOpt)))
+    (.createCollection db coll createOpt)
+    (.getCollection db coll)))  ;; NOTE: createCollection doesn't return anything, we have to call .getCollection to get a handle on the collection
 
 (defn drop
   "Deletes collection from database."

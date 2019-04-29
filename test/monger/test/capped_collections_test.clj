@@ -15,7 +15,7 @@
           cname "cached"
           _     (mc/drop db cname)
           coll  (mc/create db cname {:capped true :size (-> 16 megabytes) :max n})]
-      (is (= cname (.getName coll)))
+      (is (= cname (.getCollectionName (.getNamespace coll))))
       (mc/insert-batch db cname (for [i (range 0 (+ n 100))] {:i i}))
       (is (= n (mc/count db cname)))
       ;; older elements get replaced by newer ones
