@@ -47,7 +47,7 @@
 (deftest get-database
   (let [connection (mg/connect)
         db         (mg/get-db connection "monger-test")]
-    (is (instance? com.mongodb.DB db))))
+    (is (instance? com.mongodb.client.MongoDatabase db))))
 
 
 (deftest test-get-db-names
