@@ -151,7 +151,7 @@
    If you want to work directly with DBObject, use find."
   ([^MongoDatabase db ^String coll]
      (with-open [dbc (find db coll)]
-       (map (fn [x] (from-bson-document x true)) (seq dbc))))
+       (map (fn [x] (from-bson-document x true)) (iterator-seq dbc))))
   ([^MongoDatabase db ^String coll ^Map ref]
      (with-open [dbc (find db coll ref)]
        (map (fn [x] (from-bson-document x true)) (iterator-seq dbc))))
@@ -159,7 +159,7 @@
      (find-maps db coll ref fields true))
   ([^MongoDatabase db ^String coll ^Map ref fields keywordize]
      (with-open [dbc (find db coll ref fields)]
-       (map (fn [x] (from-bson-document x keywordize)) (seq dbc)))))
+       (map (fn [x] (from-bson-document x keywordize)) (iterator-seq dbc)))))
 
 (defn find-seq
   "Queries for objects in this collection, returns ISeq of Documents."
@@ -213,7 +213,7 @@
      (let [^MongoCollection mcoll (.getCollection db (name coll))
            maybe-fields (when fields (as-field-selector fields))
            maybe-sort (when sort (to-bson-document sort))
-           update-options (.returnDocument (.upsert (.sort (FindOneAndUpdateOptions.) sort) upsert) (if return-new ReturnDocument/AFTER ReturnDocument/BEFORE)) ]
+           update-options (.returnDocument (.upsert (.sort (FindOneAndUpdateOptions.) maybe-sort) upsert) (if return-new ReturnDocument/AFTER ReturnDocument/BEFORE)) ]
        (from-bson-document
         (.findOneAndUpdate mcoll (to-bson-document conditions) (to-bson-document document) update-options) keywordize)))) ;;maybe-fields maybe-sort remove
 

@@ -107,10 +107,10 @@
                                       {:language "Ruby"    :tags [ "object-oriented" "dynamic" ]}])
 
       (is (= "Scala" (:language (first (mc/find-maps db collection {:tags {$all [ "functional" "object-oriented" ]}} )))))
-      (is (= 3 (count (iterator-seq (mc/find-maps db collection {:tags {$in [ "functional" "object-oriented" ]}} )))))
-      (is (= 2 (count (iterator-seq (mc/find-maps db collection {:language {$in [ "Scala" "Ruby" ]}} )))))
-      (is (= 1 (count (iterator-seq (mc/find-maps db collection {:tags {$nin [ "dynamic" "object-oriented" ]}} )))))
-      (is (= 3 (count (iterator-seq (mc/find-maps db collection {:language {$nin [ "C#" ]}} )))))))
+      (is (= 3 (count (mc/find-maps db collection {:tags {$in [ "functional" "object-oriented" ]}} ))))
+      (is (= 2 (count (mc/find-maps db collection {:language {$in [ "Scala" "Ruby" ]}} ))))
+      (is (= 1 (count (mc/find-maps db collection {:tags {$nin [ "dynamic" "object-oriented" ]}} ))))
+      (is (= 3 (count (mc/find-maps db collection {:language {$nin [ "C#" ]}} ))))))
 
 
   (deftest find-with-conditional-operators-on-embedded-documents

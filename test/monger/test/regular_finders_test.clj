@@ -10,7 +10,7 @@
             [monger.conversion :as mgcnv]
             [clojure.test :refer :all]
             [monger.operators :refer :all]
-            [monger.conversion :refer [to-db-object]]))
+            [monger.conversion :refer [to-bson-document]]))
 
 (let [conn (mg/connect)
       db   (mg/get-db conn "monger-test")]
@@ -49,8 +49,8 @@
           found-one (mc/find-one db collection { :language "Clojure" })]
       (is found-one)
       (is (= (:_id doc) (mu/get-id found-one)))
-      (is (= (mgcnv/from-db-object found-one true) doc))
-      (is (= (mgcnv/to-db-object doc) found-one))))
+      (is (= (mgcnv/from-bson-document found-one true) doc))
+      (is (= (mgcnv/to-bson-document doc) found-one))))
 
   (deftest find-one-full-document-as-map-when-collection-has-matches
     (let [collection "regular_finders_docs"
@@ -149,14 +149,14 @@
           doc-id     (mu/random-uuid)
           doc        { :data-store "MongoDB", :language "Clojure", :_id doc-id }]
       (mc/insert db collection doc)
-      (is (= (to-db-object doc) (mc/find-by-id db collection doc-id)))))
+      (is (= (to-bson-document doc) (mc/find-by-id db collection doc-id)))))
 
   (deftest find-full-document-by-object-id-when-document-does-exist
     (let [collection "libraries"
           doc-id     (ObjectId.)
           doc        { :data-store "MongoDB", :language "Clojure", :_id doc-id }]
       (mc/insert db collection doc)
-      (is (= (to-db-object doc) (mc/find-by-id db collection doc-id)))))
+      (is (= (to-bson-document doc) (mc/find-by-id db collection doc-id)))))
 
   (deftest find-full-document-map-by-string-id-when-document-does-exist
     (let [collection "libraries"
@@ -177,7 +177,7 @@
           doc-id     (mu/random-uuid)
           doc        { :data-store "MongoDB", :language "Clojure", :_id doc-id }]
       (mc/insert db collection doc)
-      (is (= (to-db-object { :_id doc-id :language "Clojure" })
+      (is (= (to-bson-document { :_id doc-id :language "Clojure" })
              (mc/find-by-id db collection doc-id [ :language ])))))
 
 
@@ -226,8 +226,8 @@
                                       { :language "Clojure", :name "incanter" }
                                       { :language "Scala",   :name "akka" }])
       (is (= 1 (monger.core/count (mc/find db collection { :language "Scala"   }))))
-      (is (= 3 (.count (mc/find db collection { :language "Clojure" }))))
-      (is (empty? (mc/find db collection      { :language "Java"    })))))
+      (is (= 3 (count (iterator-seq (mc/find db collection { :language "Clojure" })))))
+      (is (empty? (iterator-seq (mc/find db collection      { :language "Java"    }))))))
 
 
   (deftest find-document-specify-fields

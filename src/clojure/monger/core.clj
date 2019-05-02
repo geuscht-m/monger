@@ -46,7 +46,7 @@
             [monger.util :refer [into-array-list]])
   (:import [com.mongodb MongoClient MongoClientURI MongoCredential WriteConcern DBCursor Bytes
             MongoClientOptions MongoClientOptions$Builder ServerAddress MapReduceOutput MongoException]
-           [com.mongodb.client MongoDatabase MongoCollection]
+           [com.mongodb.client MongoDatabase MongoCollection MongoCursor]
            [org.bson Document]
            [com.mongodb.gridfs GridFS]
            [java.util Map]))
@@ -269,4 +269,8 @@
   (count [^MapReduceOutput this]
     ;; MongoDB Java driver could use a lot more specific type than Iterable but
     ;; it always uses DBCollection#find to popular result set. MK.
-    (.count ^DBCursor (.results this))))
+    (.count ^DBCursor (.results this)))
+
+  MongoCursor
+  (count [^MongoCursor this]
+    (count (iterator-seq this))))
