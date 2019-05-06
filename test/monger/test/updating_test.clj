@@ -79,7 +79,7 @@
   (deftest ^{:updating true} save-a-new-document
     (let [collection "people"
           document       {:name "Joe" :age 30}]
-      (is (mc/save db "people" document))
+      (is (mc/save db collection document))
       (is (= 1 (mc/count db collection)))))
 
   (deftest ^{:updating true} save-and-return-a-new-document
