@@ -288,13 +288,15 @@
                                                        :or {upsert false
                                                             multi false
                                                             write-concern mc/*mongodb-write-concern*}}]
-     (.updateMany (.getCollection db (name coll))
-              (to-bson-document conditions)
-              (to-bson-document document)
-              (.upsert (UpdateOptions.) upsert)
-              ;;multi
-              ;;write-concern)))
-              )))
+   (println conditions)
+   (println document)
+   (.updateMany (.getCollection db (name coll))
+                (to-bson-document conditions)
+                (to-bson-document document)
+                (.upsert (UpdateOptions.) upsert)
+                ;;multi
+                ;;write-concern)))
+                )))
 
 (defn ^UpdateResult upsert
   "Performs an upsert.
@@ -358,14 +360,17 @@
    This function returns write result. If you want to get the exact persisted document back,
    use `save-and-return`."
   ([^MongoDatabase db ^String coll ^Map document]
-   (.replaceOne (.getCollection db (name coll))
-                (to-bson-document {:_id (get document :_id)})
-                (to-bson-document document)))
+   (.findOneAndUpdate (.getCollection db (name coll))
+                      ;;(to-bson-document {:_id (get document :_id)})
+                      (to-bson-document (if (contains? document :_id) {:_id (get document :_id)} {}))
+                (to-bson-document document)
+                (.upsert (FindOneAndUpdateOptions.) true)))
             ;;mc/*mongodb-write-concern*))
   ([^MongoDatabase db ^String coll ^Map document ^WriteConcern write-concern]
-   (.replaceOne (.getCollection db (name coll))
-                (to-bson-document {:_id (get document :_id)})
-                (to-bson-document document))))
+   (.findOneAndUpdate (.getCollection db (name coll))
+                      (to-bson-document (if (contains? document :_id) {:_id (get document :_id)} {}))
+                      (to-bson-document document)
+                      (.upsert (FindOneAndUpdateOptions.) true))))
                 ;;write-concern)))
 
 (defn ^clojure.lang.IPersistentMap save-and-return
