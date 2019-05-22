@@ -496,6 +496,17 @@
    ;;(.collectionExists db coll)))
    (some? (some #(= coll %) (.listCollectionNames db)))))
 
+(defn- buildCreateOpt
+  "Takes a map and tries to build CreateCollectionOptions object from it
+
+   Return nil if there are no options"
+  [^Map options]
+  (if (clojure.core/empty? options)
+    nil
+    (when (contains? options :capped)
+      (.maxDocuments (.sizeInBytes (.capped (CreateCollectionOptions.) (get options :capped)) (get options :size)) (get options :max)))))
+
+
 (defn create
   "Creates a collection with a given name and options.
 
@@ -505,8 +516,10 @@
    :max (number of documents)
    :size (max allowed size of the collection, in bytes)"
   [^MongoDatabase db ^String coll ^Map options]
-  (let [createOpt (.sizeInBytes (.capped (CreateCollectionOptions.) (get options :capped)) (get options :size))]
-    (.createCollection db coll createOpt)
+  (let [createOpt (buildCreateOpt options)]
+    (if (nil? createOpt)
+      (.createCollection db coll)
+      (.createCollection db coll createOpt))
     (.getCollection db coll)))  ;; NOTE: createCollection doesn't return anything, we have to call .getCollection to get a handle on the collection
 
 (defn drop
