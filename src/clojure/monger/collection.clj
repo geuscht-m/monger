@@ -458,6 +458,13 @@
                      index-opts))))
 
 
+;; NOTE: listIndexes returns an iterator, not a list of documents
+;;       We have to do some gymnastics to convert it back to a list
+;;       and it doesn't look like map or reduce readily accept protocols (need to check)
+
+(defn- bson-converter [^Document input]
+  (reduce (fn [m ^String k] (assoc m (keyword k) (from-bson-document (.get input k) true))) {} (.keySet input)))
+
 ;;
 ;; monger.collection/indexes-on
 ;;
@@ -465,7 +472,7 @@
 (defn indexes-on
   "Return a list of the indexes for this collection."
   [^MongoDatabase db ^String coll]
-  (.listIndexes (.getCollection db (name coll))))
+  (doall (map bson-converter (iterator-seq (.iterator (.listIndexes (.getCollection db (name coll))))))))
 
 
 ;;
