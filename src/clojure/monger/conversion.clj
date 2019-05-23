@@ -125,6 +125,10 @@
   (to-bson-document [^java.util.Date input]
     input)
 
+  org.joda.time.DateTime
+  (to-bson-document [^org.joda.time.DateTime input]
+    (.toDate input))
+  
   Ratio
   (to-bson-document [^Ratio input]
     (double input))
