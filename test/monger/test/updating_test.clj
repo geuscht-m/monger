@@ -155,7 +155,7 @@
       (is (= (to-bson-document modified-doc) (mc/find-by-id db collection doc-id)))
       (mc/remove db collection)))
 
-  (deftest ^{:updating true} upsert-a-document-using-upsert
+  (deftest ^{:updating true} upsert-a-document-using-upsert-old-syntax
     (let [collection "libraries"
           doc-id       (mu/random-uuid)
           date         (Date.)
@@ -165,6 +165,20 @@
       (is (not (mr/updated-existing? (mc/upsert db collection {:language "Clojure"} doc))))
       (is (= 1 (mc/count db collection)))
       (is (mr/updated-existing? (mc/upsert db collection {:language "Clojure"} modified-doc {:multi false})))
+      (is (= 1 (mc/count db collection)))
+      (is (= (to-bson-document modified-doc) (mc/find-by-id db collection doc-id)))
+      (mc/remove db collection)))
+
+  (deftest ^{:updating true} upsert-a-document-using-upsert-new-syntax
+    (let [collection "libraries"
+          doc-id       (mu/random-uuid)
+          date         (Date.)
+          doc          {:created-at date :data-store "MongoDB" :language "Clojure" :_id doc-id}
+          modified-doc {:created-at date :data-store "MongoDB" :language "Erlang"  :_id doc-id}]
+      (mc/remove db collection)
+      (is (not (mr/updated-existing? (mc/upsert db collection {:language "Clojure"} {:$set doc}))))
+      (is (= 1 (mc/count db collection)))
+      (is (mr/updated-existing? (mc/upsert db collection {:language {:$eq "Clojure"} } {:$set modified-doc} {:multi false})))
       (is (= 1 (mc/count db collection)))
       (is (= (to-bson-document modified-doc) (mc/find-by-id db collection doc-id)))
       (mc/remove db collection))))

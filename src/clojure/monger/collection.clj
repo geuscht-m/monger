@@ -68,6 +68,20 @@
             [monger.constraints :refer :all]
             [monger.util :refer [into-array-list]]))
 
+;; Helper functions that mask some of the differences between the 2.x and 3.x APIs
+(defn- contains-update-operator?
+  [^Map document]
+  (let [first-key (first (keys document))]
+    ;;(println first-key)
+    (or (not (nil? first-key)) (re-matches #"^\$.*" (name first-key)))))
+
+(defn- update-syntax-driver-3
+  "Very simple check if the document passed in contains an update operator at the top level.
+   If it doesn't the function returns the input document wrapped in a $set operation."
+  [^Map document]
+  (if (contains-update-operator? document)
+    document
+    {:$set document}))
 
 ;;
 ;; API
@@ -212,10 +226,15 @@
                                                         keywordize true}}]
      (let [^MongoCollection mcoll (.getCollection db (name coll))
            maybe-fields (when fields (as-field-selector fields))
-           maybe-sort (when sort (to-bson-document sort))
-           update-options (.returnDocument (.upsert (.sort (FindOneAndUpdateOptions.) maybe-sort) upsert) (if return-new ReturnDocument/AFTER ReturnDocument/BEFORE)) ]
-       (from-bson-document
-        (.findOneAndUpdate mcoll (to-bson-document conditions) (to-bson-document document) update-options) keywordize)))) ;;maybe-fields maybe-sort remove
+           ;;maybe-sort (when sort (to-bson-document sort))
+           update-options (.returnDocument (.upsert (.sort (FindOneAndUpdateOptions.) sort) upsert) (if return-new ReturnDocument/AFTER ReturnDocument/BEFORE)) ]
+       (println conditions)
+       (println document)
+       (println update-options)
+       (if remove
+         (from-bson-document (.findOneAndDelete mcoll (to-bson-document conditions) update-options) keywordize)
+         (from-bson-document
+          (.findOneAndUpdate mcoll (to-bson-document conditions) (to-bson-document (update-syntax-driver-3 document)) update-options) keywordize))))) ;;maybe-fields maybe-sort remove
 
 ;;
 ;; monger.collection/find-by-id
@@ -270,6 +289,7 @@
 
 ;; monger.collection/update
 
+
 (defn ^UpdateResult update
   "Performs an update operation.
 
@@ -289,14 +309,20 @@
                                                             multi false
                                                             write-concern mc/*mongodb-write-concern*}}]
    (println conditions)
-   (println document)
-   (.updateMany (.getCollection db (name coll))
-                (to-bson-document conditions)
-                (to-bson-document document)
-                (.upsert (UpdateOptions.) upsert)
-                ;;multi
-                ;;write-concern)))
-                )))
+   (println (update-syntax-driver-3 document))
+   (if multi
+     (.updateMany (.getCollection db (name coll))
+                  (to-bson-document conditions)
+                  (to-bson-document (update-syntax-driver-3 document))
+                  (.upsert (UpdateOptions.) upsert)
+                  ;;multi
+                  ;;write-concern)))
+                  )
+     (.updateOne (.getCollection db (name coll))
+                 (to-bson-document conditions)
+                 (to-bson-document (update-syntax-driver-3 document))
+                 (.upsert (UpdateOptions.) upsert)))))
+   
 
 (defn ^UpdateResult upsert
   "Performs an upsert.
@@ -363,8 +389,8 @@
    (.findOneAndUpdate (.getCollection db (name coll))
                       ;;(to-bson-document {:_id (get document :_id)})
                       (to-bson-document (if (contains? document :_id) {:_id (get document :_id)} {}))
-                (to-bson-document document)
-                (.upsert (FindOneAndUpdateOptions.) true)))
+                      (to-bson-document document)
+                      (.upsert (FindOneAndUpdateOptions.) true)))
             ;;mc/*mongodb-write-concern*))
   ([^MongoDatabase db ^String coll ^Map document ^WriteConcern write-concern]
    (.findOneAndUpdate (.getCollection db (name coll))
@@ -388,9 +414,12 @@
   ([^MongoDatabase db ^String coll ^Map document ^WriteConcern write-concern]
      ;; see the comment in insert-and-return. Here we additionally need to make sure to not scrap the :_id key if
      ;; it is already present. MK.
-     (let [doc (merge {:_id (ObjectId.)} document)]
-       (save db coll doc write-concern)
-       doc)))
+   (let [doc (merge {:_id (ObjectId.)} document)]
+     (print "save-and-return document ")
+     (println doc)
+     (println document)
+     (save db coll doc write-concern)
+     doc)))
 
 
 ;; monger.collection/remove

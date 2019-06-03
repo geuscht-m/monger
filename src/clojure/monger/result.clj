@@ -41,7 +41,8 @@
    * http://clojuremongodb.info/articles/updating.html
    * http://clojuremongodb.info/articles/commands.html
    * http://clojuremongodb.info/articles/mapreduce.html"
-  (:import [com.mongodb WriteResult CommandResult])
+  (:import [com.mongodb WriteResult CommandResult]
+           [com.mongodb.client.result UpdateResult])
   (:require monger.conversion))
 
 ;;
@@ -64,7 +65,15 @@
   CommandResult
   (acknowledged?
     [^CommandResult result]
-    (.ok result)))
+    (.ok result))
+
+  UpdateResult
+  (acknowledged?
+    [^UpdateResult result]
+    (.wasAcknowledged result))
+  (updated-existing?
+    [^UpdateResult result]
+    (nil? (.getUpsertedId result))))
 
 (defn affected-count
   "Get the number of documents affected"
