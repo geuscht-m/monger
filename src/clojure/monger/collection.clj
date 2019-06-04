@@ -66,14 +66,14 @@
             [monger.result :as mres]
             [monger.conversion :refer :all]
             [monger.constraints :refer :all]
-            [monger.util :refer [into-array-list]]))
+            [monger.util :refer [into-array-list]]
+            [clojure.string :as str :refer [starts-with?]]))
 
 ;; Helper functions that mask some of the differences between the 2.x and 3.x APIs
 (defn- contains-update-operator?
   [^Map document]
   (let [first-key (first (keys document))]
-    ;;(println first-key)
-    (or (not (nil? first-key)) (re-matches #"^\$.*" (name first-key)))))
+    (or (nil? first-key) (starts-with? (name first-key) "$"))))
 
 (defn- update-syntax-driver-3
   "Very simple check if the document passed in contains an update operator at the top level.
@@ -230,6 +230,9 @@
            operation-options (if remove
                                (.sort (FindOneAndDeleteOptions.) maybe-sort)
                                (.projection (.returnDocument (.upsert (.sort (FindOneAndUpdateOptions.) maybe-sort) upsert) (if return-new ReturnDocument/AFTER ReturnDocument/BEFORE)) maybe-fields)) ]
+       (print "Conditions: ")(println conditions)
+       (print "Document: ")(println document)
+       (print "Keys: ")(println upsert)
        (from-bson-document
         (if remove
           (.findOneAndDelete mcoll (to-bson-document conditions) operation-options)
@@ -239,7 +242,7 @@
 ;; monger.collection/find-by-id
 ;;
 
-(defn ^DBObject find-by-id
+(defn ^Document find-by-id
   "Returns a single object with matching _id field."
   ([^MongoDatabase db ^String coll id]
      (check-not-nil! id "id must not be nil")
@@ -385,18 +388,29 @@
    This function returns write result. If you want to get the exact persisted document back,
    use `save-and-return`."
   ([^MongoDatabase db ^String coll ^Map document]
-   (.findOneAndUpdate (.getCollection db (name coll))
-                      ;;(to-bson-document {:_id (get document :_id)})
-                      (to-bson-document (if (contains? document :_id) {:_id (get document :_id)} {}))
-                      (to-bson-document document)
-                      (.upsert (FindOneAndUpdateOptions.) true)))
+   (save (.getCollection db (name coll)) document))
+   ;; (.findOneAndUpdate (.getCollection db (name coll))
+   ;;                    ;;(to-bson-document {:_id (get document :_id)})
+   ;;                    (to-bson-document (if (contains? document :_id) {:_id (get document :_id)} {}))
+   ;;                    (to-bson-document document)
+   ;;                    (.upsert (FindOneAndUpdateOptions.) true)))
             ;;mc/*mongodb-write-concern*))
   ([^MongoDatabase db ^String coll ^Map document ^WriteConcern write-concern]
-   (.findOneAndUpdate (.getCollection db (name coll))
-                      (to-bson-document (if (contains? document :_id) {:_id (get document :_id)} {}))
-                      (to-bson-document document)
-                      (.upsert (FindOneAndUpdateOptions.) true))))
-                ;;write-concern)))
+   (save db coll document))  ;; Note - in 3.x you add the write concern by creating a MongoCollection with the appropriate w/c
+   ;;(.findOneAndUpdate (.getCollection db (name coll))
+   ;;                   (to-bson-document (if (contains? document :_id) {:_id (get document :_id)} {}))
+   ;;                   (to-bson-document document)
+   ;;                   (.upsert (FindOneAndUpdateOptions.) true))))
+   ;;write-concern)))
+  ([^MongoCollection coll ^Map document]
+   (let [filter-doc (to-bson-document (if (contains? document :_id) {:_id (get document :_id)} {}))
+         save-doc (to-bson-document (update-syntax-driver-3 document))]
+     (.findOneAndUpdate coll
+                        filter-doc
+                        save-doc
+                        (.upsert (FindOneAndUpdateOptions.) true)))))
+
+   
 
 (defn ^clojure.lang.IPersistentMap save-and-return
   "Saves an object to the given collection (does insert or update based on the object _id).
