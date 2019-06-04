@@ -226,14 +226,14 @@
                                                         keywordize true}}]
      (let [^MongoCollection mcoll (.getCollection db (name coll))
            maybe-fields (when fields (as-field-selector fields))
-           ;;maybe-sort (when sort (to-bson-document sort))
+           maybe-sort (when sort (to-bson-document sort))
            operation-options (if remove
-                               (.sort (FindOneAndDeleteOptions.) sort)
-                               (.returnDocument (.upsert (.sort (FindOneAndUpdateOptions.) sort) upsert) (if return-new ReturnDocument/AFTER ReturnDocument/BEFORE))) ]
+                               (.sort (FindOneAndDeleteOptions.) maybe-sort)
+                               (.projection (.returnDocument (.upsert (.sort (FindOneAndUpdateOptions.) maybe-sort) upsert) (if return-new ReturnDocument/AFTER ReturnDocument/BEFORE)) maybe-fields)) ]
        (from-bson-document
         (if remove
           (.findOneAndDelete mcoll (to-bson-document conditions) operation-options)
-          (.findOneAndUpdate mcoll (to-bson-document conditions) (to-bson-document (update-syntax-driver-3 document)) operation-options)) keywordize)))) ;;maybe-fields maybe-sort remove
+          (.findOneAndUpdate mcoll (to-bson-document conditions) (to-bson-document (update-syntax-driver-3 document)) operation-options)) keywordize)))) ;;maybe-fields
 
 ;;
 ;; monger.collection/find-by-id

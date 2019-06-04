@@ -273,8 +273,8 @@
   (as-field-selector [^List input]
     (to-bson-document (zipmap input (repeat 1))))
 
-  Map
-  (as-field-selector [^Map input]
+  IPersistentMap
+  (as-field-selector [^IPersistentMap input]
     (to-bson-document input))    
 
   Object
