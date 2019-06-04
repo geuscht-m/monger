@@ -56,7 +56,7 @@
             AggregationOptions AggregationOptions$OutputMode MongoNamespace]
            [com.mongodb.client MongoDatabase MongoCollection MongoCursor FindIterable]
            [com.mongodb.client.result DeleteResult UpdateResult]
-           [com.mongodb.client.model CreateCollectionOptions FindOneAndUpdateOptions UpdateOptions IndexOptions ReturnDocument]
+           [com.mongodb.client.model CreateCollectionOptions FindOneAndUpdateOptions FindOneAndDeleteOptions UpdateOptions IndexOptions ReturnDocument]
            [java.util List Map]
            [java.util.concurrent TimeUnit]
            [clojure.lang IPersistentMap ISeq]
@@ -227,14 +227,13 @@
      (let [^MongoCollection mcoll (.getCollection db (name coll))
            maybe-fields (when fields (as-field-selector fields))
            ;;maybe-sort (when sort (to-bson-document sort))
-           update-options (.returnDocument (.upsert (.sort (FindOneAndUpdateOptions.) sort) upsert) (if return-new ReturnDocument/AFTER ReturnDocument/BEFORE)) ]
-       (println conditions)
-       (println document)
-       (println update-options)
-       (if remove
-         (from-bson-document (.findOneAndDelete mcoll (to-bson-document conditions) update-options) keywordize)
-         (from-bson-document
-          (.findOneAndUpdate mcoll (to-bson-document conditions) (to-bson-document (update-syntax-driver-3 document)) update-options) keywordize))))) ;;maybe-fields maybe-sort remove
+           operation-options (if remove
+                               (.sort (FindOneAndDeleteOptions.) sort)
+                               (.returnDocument (.upsert (.sort (FindOneAndUpdateOptions.) sort) upsert) (if return-new ReturnDocument/AFTER ReturnDocument/BEFORE))) ]
+       (from-bson-document
+        (if remove
+          (.findOneAndDelete mcoll (to-bson-document conditions) operation-options)
+          (.findOneAndUpdate mcoll (to-bson-document conditions) (to-bson-document (update-syntax-driver-3 document)) operation-options)) keywordize)))) ;;maybe-fields maybe-sort remove
 
 ;;
 ;; monger.collection/find-by-id

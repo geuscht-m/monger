@@ -262,17 +262,21 @@
 
 
 (defprotocol FieldSelector
-  (^com.mongodb.DBObject as-field-selector [input] "Converts values to DBObject that can be used to specify a list of document fields (including negation support)"))
+  (^org.bson.Document as-field-selector [input] "Converts values to BSON Document that can be used to specify a list of document fields (including negation support)"))
 
 (extend-protocol FieldSelector
-  DBObject
-  (as-field-selector [^DBObject input]
+  Document
+  (as-field-selector [^Document input]
     input)
 
   List
   (as-field-selector [^List input]
-    (to-db-object (zipmap input (repeat 1))))
+    (to-bson-document (zipmap input (repeat 1))))
+
+  Map
+  (as-field-selector [^Map input]
+    (to-bson-document input))    
 
   Object
   (as-field-selector [input]
-    (to-db-object input)))
+    (to-bson-document input)))
