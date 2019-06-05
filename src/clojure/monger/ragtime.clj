@@ -47,7 +47,7 @@
   migrations-collection "meta.migrations")
 
 
-(extend-type com.mongodb.DB
+(extend-type com.mongodb.client.MongoDatabase
   proto/DataStore
   (add-migration-id [db id]
     (mc/insert db migrations-collection {:_id id :created_at (Date.)} WriteConcern/FSYNC_SAFE))
