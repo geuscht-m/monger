@@ -603,13 +603,13 @@
 ;;
 ;; monger.collection/distinct
 ;;
-
+;; FIXME - currently only works for String return values
 (defn distinct
   "Finds distinct values for a key"
   ([^MongoDatabase db ^String coll ^String key]
-     (.distinct (.getCollection db (name coll)) ^String (name key) Document))
+     (doall (iterator-seq (.iterator (.distinct (.getCollection db (name coll)) ^String (name key) String)))))
   ([^MongoDatabase db ^String coll ^String key ^Map query]
-     (.distinct (.getCollection db (name coll)) ^String (name key) (to-bson-document query) Document))) ;; TODO - passing dummy Document here to match correct function signature for distinct
+     (doall (iterator-seq (.iterator (.distinct (.getCollection db (name coll)) ^String (name key) (to-bson-document query) String))))))
 
 
 ;;
