@@ -47,7 +47,7 @@
                                       {:language "Clojure" :name "langohr"  :users 5}
                                       {:language "Clojure" :name "incanter" :users 15}
                                       {:language "Scala"   :name "akka"     :users 150}])
-      (are [a b] (= a (count (iterator-seq (mc/find db collection b))))
+      (are [a b] (= a (count (mc/find db collection b)))
            2 {:users {$gt 10}}
            3 {:users {$gte 5}}
            2 {:users {$lt 10}}
@@ -64,7 +64,7 @@
                                       {:language "Clojure" :name "langohr"  :users 5}
                                       {:language "Clojure" :name "incanter" :users 15}
                                       {:language "Scala"   :name "akka"     :users 150}])
-      (is (= 2 (count (iterator-seq (mc/find db collection {:language {$eq "Clojure"}})))))))
+      (is (= 2 (count (mc/find db collection {:language {$eq "Clojure"}}))))))
 
   ;;
   ;; $ne
@@ -76,7 +76,7 @@
                                       {:language "Clojure" :name "langohr"  :users 5}
                                       {:language "Clojure" :name "incanter" :users 15}
                                       {:language "Scala"   :name "akka"     :users 150}])
-      (is (= 2 (count (iterator-seq (mc/find db collection {:language {$ne "Clojure"}})))))))
+      (is (= 2 (count (mc/find db collection {:language {$ne "Clojure"}}))))))
 
 
   ;;
@@ -89,12 +89,12 @@
                                       {:language "Clojure" :name "langohr"  :users 5}
                                       {:language "Clojure" :name "incanter" :users 15}
                                       {:language "Scala"   :name "akka"     :users 150}])
-      (is (= 1 (count (iterator-seq (mc/find db collection {$and [{:language "Clojure"}
-                                                                  {:users {$gt 10}}]})))))
-      (is (= 3 (count (iterator-seq (mc/find db collection {$or [{:language "Clojure"}
-                                                                 {:users {$gt 10}} ]})))))
-      (is (= 1 (count (iterator-seq (mc/find db collection {$nor [{:language "Clojure"}
-                                                                  {:users {$gt 10}} ]})))))))
+      (is (= 1 (count (mc/find db collection {$and [{:language "Clojure"}
+                                                    {:users {$gt 10}}]}))))
+      (is (= 3 (count (mc/find db collection {$or [{:language "Clojure"}
+                                                   {:users {$gt 10}} ]}))))
+      (is (= 1 (count (mc/find db collection {$nor [{:language "Clojure"}
+                                                    {:users {$gt 10}} ]}))))))
 
   ;;
   ;; $all, $in, $nin
@@ -121,7 +121,7 @@
                                       {:name "Alice" :comments [{:text "Yeah" :rating 2}
                                                                 {:text "Doh" :rating 1}
                                                                 {:text "Agreed" :rating 3}]}])
-      (are [a b] (= a (count (iterator-seq (mc/find db collection b))))
+      (are [a b] (= a (count (mc/find db collection b)))
            1 {:comments {$elemMatch {:text "Nice!" :rating {$gte 1}}}}
            2 {"comments.rating" 1}
            1 {"comments.rating" {$gt 3}})))
@@ -132,7 +132,7 @@
                                       {:language "Clojure" :name "Langohr"  :users 5}
                                       {:language "Clojure" :name "Incanter" :users 15}
                                       {:language "Scala"   :name "Akka"     :users 150}])
-      (are [query results] (is (= results (count (iterator-seq (mc/find db collection query)))))
+      (are [query results] (is (= results (count (mc/find db collection query))))
            {:language {$regex "Clo.*"}} 2
            {:language {$regex "clo.*" $options "i"}} 2
            {:name     {$regex "aK.*" $options "i"}} 1
@@ -143,4 +143,4 @@
     (let [collection "people"]
       (mc/insert-batch db collection [{:name "Bob" :placeOfBirth "New York" :address {:city "New York"}}
                                       {:name "Alice" :placeOfBirth "New York" :address {:city "Los Angeles"}}])
-      (is (= 1 (count (iterator-seq (mc/find db collection {$where "this.placeOfBirth === this.address.city"}))))))))
+      (is (= 1 (count (mc/find db collection {$where "this.placeOfBirth === this.address.city"})))))))

@@ -153,7 +153,7 @@
      (.iterator (.find (.getCollection db (name coll)))))
   ([^MongoDatabase db ^String coll ^Map ref]
      (.iterator (.find (.getCollection db (name coll))
-                       (to-bson-document ref))))
+                                     (to-bson-document ref))))
   ([^MongoDatabase db ^String coll ^Map ref fields]
      (.iterator (.projection (.find (.getCollection db (name coll))
                                     (to-bson-document ref))
@@ -165,27 +165,27 @@
    If you want to work directly with DBObject, use find."
   ([^MongoDatabase db ^String coll]
      (with-open [dbc (find db coll)]
-       (map (fn [x] (from-bson-document x true)) (iterator-seq dbc))))
+       (doall (map (fn [x] (from-bson-document x true)) (iterator-seq dbc)))))
   ([^MongoDatabase db ^String coll ^Map ref]
-     (with-open [dbc (find db coll ref)]
-       (map (fn [x] (from-bson-document x true)) (iterator-seq dbc))))
+     (with-open [^MongoCursor dbc (find db coll ref)]
+       (doall (map (fn [x] (from-bson-document x true)) (iterator-seq dbc)))))
   ([^MongoDatabase db ^String coll ^Map ref fields]
      (find-maps db coll ref fields true))
   ([^MongoDatabase db ^String coll ^Map ref fields keywordize]
      (with-open [dbc (find db coll ref fields)]
-       (map (fn [x] (from-bson-document x keywordize)) (iterator-seq dbc)))))
+       (doall (map (fn [x] (from-bson-document x keywordize)) (iterator-seq dbc))))))
 
 (defn find-seq
   "Queries for objects in this collection, returns ISeq of Documents."
   ([^MongoDatabase db ^String coll]
      (with-open [dbc (find db coll)]
-       (iterator-seq (.iterator dbc))))
+       (iterator-seq dbc)))
   ([^MongoDatabase db ^String coll ^Map ref]
      (with-open [dbc (find db coll ref)]
-       (iterator-seq (.iterator dbc))))
+       (iterator-seq dbc)))
   ([^MongoDatabase db ^String coll ^Map ref fields]
      (with-open [dbc (find db coll ref fields)]
-       (iterator-seq (.iterator dbc)))))
+       (iterator-seq dbc))))
 
 ;;
 ;; monger.collection/find-one

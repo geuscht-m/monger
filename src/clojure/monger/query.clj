@@ -42,8 +42,8 @@
             [monger.cursor :as cursor :refer [add-options]]
             [monger.conversion :refer :all]
             [monger.operators :refer :all])
-  (:import [com.mongodb DBCursor ReadPreference]
-           [com.mongodb.client MongoDatabase MongoCollection FindIterable]
+  (:import [com.mongodb ReadPreference]
+           [com.mongodb.client MongoCursor MongoDatabase MongoCollection FindIterable]
            org.bson.Document
            [java.util.concurrent TimeUnit]
            java.util.List))
@@ -87,6 +87,12 @@
   ([^MongoCollection coll]
      (merge (empty-query) { :collection coll })))
 
+;; FIXME - duplicated function
+;; Helper funtion needed to make the map in exec work
+(defn- bson-converter [^Document input keywordize]
+  (reduce (fn [m ^String k] (assoc m (keyword k) (from-bson-document (.get input k) keywordize))) {} (.keySet input)))
+
+
 (defn exec
   [{:keys [^MongoCollection collection
            query
@@ -102,11 +108,9 @@
            max-time
            options]
     :or { limit 0 batch-size 256 skip 0 } }]
-  (with-open [cursor (doto (.iterator (.projection (.find collection (to-bson-document query)) (as-field-selector fields)))
-                       (.limit limit)
-                       (.skip  skip)
-                       (.sort  (to-bson-document sort))
-                       (.batchSize batch-size))]
+  (let [cursor (.batchSize (.skip (.limit (.projection (.find collection (to-bson-document query)) (as-field-selector fields)) limit) skip) batch-size)]
+    (when sort
+      (.sort cursor (to-bson-document sort)))
     (when snapshot
       (.snapshot cursor))
     (when hint
@@ -117,8 +121,9 @@
       (.maxTime cursor max-time TimeUnit/MILLISECONDS))
     (when options
       (add-options cursor options))
-    (map (fn [x] (from-bson-document x keywordize-fields))
-         cursor)))
+    (with-open [^MongoCursor mc (.iterator cursor)]
+      (doall (map (fn [x] (bson-converter x keywordize-fields))
+                (iterator-seq mc))))))
 
 ;;
 ;; API

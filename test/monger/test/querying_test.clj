@@ -52,7 +52,7 @@
           doc  { :title "monger" :language "Clojure" :_id (ObjectId.) }]
       (mc/insert db coll doc)
       (is (= [doc] (mc/find-maps db coll { :title "monger" })))
-      (is (= doc (from-db-object (first (mc/find db coll { :title "monger" })) true)))))
+      (is (= doc (from-bson-document (first (mc/find db coll { :title "monger" })) true)))))
 
 
   ;; exact match over string field with limit
