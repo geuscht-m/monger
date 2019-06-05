@@ -273,4 +273,8 @@
 
   MongoCursor
   (count [^MongoCursor this]
-    (count (iterator-seq this))))
+    (count (iterator-seq this)))
+
+  clojure.lang.LazySeq
+  (count [^clojure.lang.LazySeq this]
+    (clojure.core/count this)))
