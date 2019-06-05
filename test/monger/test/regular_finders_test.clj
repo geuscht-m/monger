@@ -198,7 +198,7 @@
   (deftest find-full-document-when-collection-is-empty
     (let [collection "regular_finders_docs"
           cursor     (mc/find db collection)]
-      (is (empty? (seq cursor)))))
+      (is (empty? (iterator-seq cursor)))))
 
   (deftest find-document-seq-when-collection-is-empty
     (let [collection "regular_finders_docs"]
@@ -206,7 +206,7 @@
 
   (deftest find-multiple-documents-when-collection-is-empty
     (let [collection "libraries"]
-      (is (empty? (mc/find db collection { :language "Scala" })))))
+      (is (empty? (iterator-seq (mc/find db collection { :language "Scala" }))))))
 
   (deftest find-multiple-maps-when-collection-is-empty
     (let [collection "libraries"]
@@ -234,7 +234,7 @@
     (let [collection "libraries"
           _          (mc/insert db collection { :language "Clojure", :name "monger" })
           result     (mc/find db collection { :language "Clojure"} [:language])]
-      (is (= (set [:_id :language]) (-> (mgcnv/from-db-object (.next result) true) keys set)))))
+      (is (= (set [:_id :language]) (-> (mgcnv/from-bson-document (.next result) true) keys set)))))
 
   (deftest find-and-iterate-over-multiple-documents-the-hard-way
     (let [collection "libraries"]
@@ -243,7 +243,7 @@
                                       { :language "Clojure", :name "incanter" }
                                       { :language "Scala",   :name "akka" }])
       (doseq [doc (take 3 (map (fn [dbo]
-                                 (mgcnv/from-db-object dbo true))
+                                 (mgcnv/from-bson-document dbo true))
                                (mc/find-seq db collection { :language "Clojure" })))]
         (is (= "Clojure" (:language doc))))))
 
@@ -278,12 +278,12 @@
                                       { :language "Scala",   :name "akka" }])
       (let [scala-libs   (mc/find db collection { :language "Scala" } [:name])
             clojure-libs (mc/find db collection { :language "Clojure"} [:language])]
-        (is (= 1 (count scala-libs)))
-        (is (= 3 (count clojure-libs)))
+        (is (= 1 (count (iterator-seq scala-libs))))
+        (is (= 3 (count (iterator-seq clojure-libs))))
         (doseq [i (iterator-seq clojure-libs)]
           (let [doc (mgcnv/from-bson-document i true)]
             (is (= (:language doc) "Clojure"))))
-        (is (empty? (mc/find db collection { :language "Erlang" } [:name]))))))
+        (is (empty? (iterator-seq (mc/find db collection { :language "Erlang" } [:name])))))))
 
   (deftest find-maps-with-keywordize-false
     (let [collection "libraries"]
