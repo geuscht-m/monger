@@ -147,7 +147,7 @@
 
 (defn ^MongoCursor find
   "Queries for objects in this collection.
-   This function returns DBCursor, which allows you to iterate over DBObjects.
+   This function returns a MongoCursor, which allows you to iterate over BSON Documents.
    If you want to manipulate clojure sequences maps, use find-maps."
   ([^MongoDatabase db ^String coll]
      (.iterator (.find (.getCollection db (name coll)))))
@@ -179,13 +179,13 @@
   "Queries for objects in this collection, returns ISeq of Documents."
   ([^MongoDatabase db ^String coll]
      (with-open [dbc (find db coll)]
-       (seq dbc)))
+       (iterator-seq (.iterator dbc))))
   ([^MongoDatabase db ^String coll ^Map ref]
      (with-open [dbc (find db coll ref)]
-       (seq dbc)))
+       (iterator-seq (.iterator dbc))))
   ([^MongoDatabase db ^String coll ^Map ref fields]
      (with-open [dbc (find db coll ref fields)]
-       (seq dbc))))
+       (iterator-seq (.iterator dbc)))))
 
 ;;
 ;; monger.collection/find-one

@@ -42,7 +42,7 @@
    * http://clojuremongodb.info/articles/commands.html
    * http://clojuremongodb.info/articles/mapreduce.html"
   (:import [com.mongodb WriteResult CommandResult]
-           [com.mongodb.client.result UpdateResult])
+           [com.mongodb.client.result UpdateResult DeleteResult])
   (:require monger.conversion))
 
 ;;
@@ -73,9 +73,37 @@
     (.wasAcknowledged result))
   (updated-existing?
     [^UpdateResult result]
-    (nil? (.getUpsertedId result))))
+    (nil? (.getUpsertedId result)))
 
-(defn affected-count
-  "Get the number of documents affected"
-  [^WriteResult result]
-  (.getN result))
+  DeleteResult
+  (acknowledged?
+    [^DeleteResult result]
+    (.wasAcknowledged result)))
+
+;; (defn affected-count
+;;   "Get the number of documents affected"
+;;   ([^WriteResult result]
+;;    (.getN result))
+;;   ([^UpdateResult result]
+;;    (.getModifiedCount result))
+;;   ([^DeleteResult result]
+;;    (.getDeletedCount result)))
+  
+(defprotocol AffectedCount
+  (affected-count [result] "Get the number of documents affected"))
+
+(extend-protocol AffectedCount
+  WriteResult
+  (affected-count
+    [^WriteResult result]
+    (.getN result))
+
+  UpdateResult
+  (affected-count
+    [^UpdateResult result]
+    (.getModifiedCount result))
+
+  DeleteResult
+  (affected-count
+    [^DeleteResult result]
+    (.getDeletedCount result)))

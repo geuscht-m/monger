@@ -278,10 +278,10 @@
                                       { :language "Scala",   :name "akka" }])
       (let [scala-libs   (mc/find db collection { :language "Scala" } [:name])
             clojure-libs (mc/find db collection { :language "Clojure"} [:language])]
-        (is (= 1 (.count scala-libs)))
-        (is (= 3 (.count clojure-libs)))
-        (doseq [i clojure-libs]
-          (let [doc (mgcnv/from-db-object i true)]
+        (is (= 1 (count scala-libs)))
+        (is (= 3 (count clojure-libs)))
+        (doseq [i (iterator-seq clojure-libs)]
+          (let [doc (mgcnv/from-bson-document i true)]
             (is (= (:language doc) "Clojure"))))
         (is (empty? (mc/find db collection { :language "Erlang" } [:name]))))))
 
