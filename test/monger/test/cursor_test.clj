@@ -1,5 +1,6 @@
 (ns monger.test.cursor-test
-  (:import  [com.mongodb DBCursor DBObject Bytes]
+  (:import  [com.mongodb DBObject Bytes]
+            [com.mongodb.client MongoCursor]
             [java.util List Map])
   (:require [monger.core :as mg]
             [clojure.test :refer :all]
@@ -8,7 +9,7 @@
 (let [conn (mg/connect)
       db   (mg/get-db conn "monger-test")]
   (deftest make-db-cursor-for-collection
-    (is (= DBCursor
+    (is (= MongoCursor
            (class (make-db-cursor db :docs)))))
 
   (deftest getting-cursor-options-value

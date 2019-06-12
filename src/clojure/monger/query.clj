@@ -115,8 +115,9 @@
       (.snapshot cursor))
     (when hint
       (.hint cursor (to-bson-document hint)))
-    (when read-preference
-      (.setReadPreference cursor read-preference))
+    ;; FIXME - read preference is now a property of MongoCollection
+    ;;(when read-preference
+    ;;  (.setReadPreference cursor read-preference))
     (when max-time
       (.maxTime cursor max-time TimeUnit/MILLISECONDS))
     (when options

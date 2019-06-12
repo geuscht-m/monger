@@ -1,6 +1,7 @@
 (ns monger.test.querying-test
   (:refer-clojure :exclude [select find sort])
   (:import  [com.mongodb WriteResult WriteConcern ReadPreference]
+            org.bson.Document
             org.bson.types.ObjectId
             java.util.Date)
   (:require [monger.core :as mg]
@@ -47,12 +48,15 @@
 
   ;; exact match over string field
 
+  (defn- bson-converter [^Document input]
+    (reduce (fn [m ^String k] (assoc m (keyword k) (from-bson-document (.get input k) true))) {} (.keySet input)))
+
   (deftest query-full-document-using-exact-matching-over-string-field
     (let [coll "querying_docs"
           doc  { :title "monger" :language "Clojure" :_id (ObjectId.) }]
       (mc/insert db coll doc)
       (is (= [doc] (mc/find-maps db coll { :title "monger" })))
-      (is (= doc (from-bson-document (first (mc/find db coll { :title "monger" })) true)))))
+      (is (= doc (bson-converter (first (iterator-seq (mc/find db coll { :title "monger" }))))))))
 
 
   ;; exact match over string field with limit

@@ -36,28 +36,30 @@
       (mc/remove db collection)
       (mc/insert-batch db collection batch)
       (let [output  (mc/map-reduce db collection mapper reducer nil MapReduceCommand$OutputType/INLINE {})
-            results (from-bson-document ^Document (.results ^MapReduceOutput output) true)]
+            results (from-bson-document ^Document (.iterator output) true)]
         (is (= expected results))))
 
     (deftest test-basic-map-reduce-example-that-replaces-named-collection
       (mc/remove db collection)
       (mc/insert-batch db collection batch)
       (let [output  (mc/map-reduce db collection mapper reducer "mr_outputs" {})
-            results (from-bson-document ^Document (.results ^MapReduceOutput output) true)]
+            results (from-bson-document ^Document (.iterator output) true)]
         (is (= 3 (mg/count results)))
         (is (= expected
-               (map #(from-db-object % true) (seq results))))
+               (map #(from-bson-document % true) (iterator-seq results))))
         (is (= expected
-               (map #(from-db-object % true) (mc/find db "mr_outputs"))))
-        (.drop ^MapReduceOutput output)))
+               (map #(from-bson-document % true) (iterator-seq (mc/find db "mr_outputs")))))
+        ;;(.drop ^MapReduceOutput output)))
+        ))
 
     (deftest test-basic-map-reduce-example-that-merged-results-into-named-collection
       (mc/remove db collection)
       (mc/insert-batch db collection batch)
       (mc/map-reduce db collection mapper reducer "merged_mr_outputs" MapReduceCommand$OutputType/MERGE {})
       (mc/insert db collection { :state "OR" :price 17.95 :quantity 4 })
-      (let [^MapReduceOutput output (mc/map-reduce db collection mapper reducer "merged_mr_outputs" MapReduceCommand$OutputType/MERGE {})]
+      (let [output (mc/map-reduce db collection mapper reducer "merged_mr_outputs" MapReduceCommand$OutputType/MERGE {})]
         (is (= 4 (mg/count output)))
         (is (= ["CA" "IL" "NY" "OR"]
                (map :_id (mc/find-maps db "merged_mr_outputs"))))
-        (.drop ^MapReduceOutput output)))))
+        ;;(.drop output)))))
+        ))))

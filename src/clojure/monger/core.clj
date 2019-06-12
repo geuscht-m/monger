@@ -47,6 +47,7 @@
   (:import [com.mongodb MongoClient MongoClientURI MongoCredential WriteConcern DBCursor Bytes
             MongoClientOptions MongoClientOptions$Builder ServerAddress MapReduceOutput MongoException]
            [com.mongodb.client MongoDatabase MongoCollection MongoCursor]
+           com.mongodb.client.internal.MongoBatchCursorAdapter
            [org.bson Document]
            [com.mongodb.gridfs GridFS]
            [java.util Map]))
@@ -273,6 +274,10 @@
 
   MongoCursor
   (count [^MongoCursor this]
+    (count (iterator-seq this)))
+
+  MongoBatchCursorAdapter
+  (count [^MongoBatchCursorAdapter this]
     (count (iterator-seq this)))
 
   clojure.lang.LazySeq
