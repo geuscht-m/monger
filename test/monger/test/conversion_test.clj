@@ -174,7 +174,7 @@
 ;;
 
 (deftest test-field-selector-coercion
-  (are [i o] (is (= (from-db-object (as-field-selector i) true) o))
+  (are [i o] (is (= (from-bson-document (as-field-selector i) true) o))
        [:a :b :c]          {:a 1 :b 1 :c 1}
        '(:a :b :c)         {:a 1 :b 1 :c 1}
        {:a 1 :b 1 :c 1}    {:a 1 :b 1 :c 1}
