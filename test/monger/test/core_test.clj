@@ -2,10 +2,14 @@
   (:require [monger util result]
             [monger.core :as mg :refer [server-address mongo-options]]
             [monger.collection :as mc]
-            [clojure.test :refer :all])
+            [clojure.test :refer :all]
+            [taoensso.timbre :as timbre])
   (:import [com.mongodb MongoClient DB WriteConcern MongoClientOptions ServerAddress]))
 
-(println (str "Using Clojure version " *clojure-version*))
+((timbre/merge-config!
+  {:level :warn
+   :ns-blacklist [] #_["org.mongodb.*"]})
+ (println (str "Using Clojure version " *clojure-version*)))
 
 (deftest connect-to-mongo-with-default-host-and-port
   (let [connection (mg/connect)]
