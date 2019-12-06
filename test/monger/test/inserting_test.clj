@@ -156,7 +156,7 @@
   (deftest insert-a-batch-of-basic-documents-without-ids-and-with-default-write-concern
     (let [collection "people"
           docs       [{:name "Joe" :age 30} {:name "Paul" :age 27}]]
-      (is (mc/insert-batch db collection docs))
+      (mc/insert-batch db collection docs)
       (is (= 2 (mc/count db collection)))))
 
   (deftest insert-a-batch-of-basic-documents-without-ids-and-with-explicit-write-concern

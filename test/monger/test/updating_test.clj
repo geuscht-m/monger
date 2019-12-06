@@ -79,7 +79,7 @@
   (deftest ^{:updating true} save-a-new-document
     (let [collection "people"
           document       {:name "Joe" :age 30}]
-      (is (mc/save db collection document))
+      (mc/save db collection document)
       (is (= 1 (mc/count db collection)))))
 
   (deftest ^{:updating true} save-and-return-a-new-document
@@ -97,8 +97,6 @@
       (is (nil? (mu/get-id doc)))
       (mc/save db "people" doc WriteConcern/SAFE)
       (is (not (nil? (mu/get-id doc))))))
-
-
 
   (deftest ^{:updating true} update-an-existing-document-using-save
     (let [collection "people"
