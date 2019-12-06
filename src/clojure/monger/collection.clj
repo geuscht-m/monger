@@ -91,7 +91,7 @@
 ;; monger.collection/insert
 ;;
 
-(defn ^WriteResult insert
+(defn insert
   "Saves document to collection and returns a write result monger.result/acknowledged?
    and related functions operate on. You can optionally specify a WriteConcern.
 
@@ -100,9 +100,6 @@
   ;; Check if insertOne is the correct function here
   ([^MongoDatabase db ^String coll document]
      (insert db coll document ^WriteConcern mc/*mongodb-write-concern*))
-     ;;(.insertOne (.getCollection db (name coll))
-     ;;         (to-bson-document document)
-     ;;         ^WriteConcern mc/*mongodb-write-concern*))
   ([^MongoDatabase db ^String coll document ^WriteConcern concern]
      (.insertOne (.getCollection db (name coll))
               ^Document (to-bson-document document))))
@@ -128,13 +125,23 @@
        doc)))
 
 
-(defn ^WriteResult insert-batch
+;; (defn ^WriteResult insert-batch
+;;   "Saves documents do collection. You can optionally specify WriteConcern as a third argument."
+;;   ([^MongoDatabase db ^String coll ^List documents]
+;;      (insert-batch db coll documents mc/*mongodb-write-concern*))
+;;      ;;(.insertMany (.getCollection db (name coll))
+;;      ;;         ^List (to-bson-document documents)
+;;      ;;         ^WriteConcern mc/*mongodb-write-concern*))
+;;   ([^MongoDatabase db ^String coll ^List documents ^WriteConcern concern]
+;;      (.insertMany (.getCollection db (name coll))
+;;               ^List (to-bson-document documents)
+;;               ;;concern)))
+;;               )))
+
+(defn insert-batch
   "Saves documents do collection. You can optionally specify WriteConcern as a third argument."
   ([^MongoDatabase db ^String coll ^List documents]
      (insert-batch db coll documents mc/*mongodb-write-concern*))
-     ;;(.insertMany (.getCollection db (name coll))
-     ;;         ^List (to-bson-document documents)
-     ;;         ^WriteConcern mc/*mongodb-write-concern*))
   ([^MongoDatabase db ^String coll ^List documents ^WriteConcern concern]
      (.insertMany (.getCollection db (name coll))
               ^List (to-bson-document documents)

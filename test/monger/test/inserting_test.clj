@@ -37,7 +37,7 @@
   (deftest insert-a-basic-document-without-id-and-with-default-write-concern
     (let [collection "people"
           doc        {:name "Joe" :age 30}]
-      (is (mc/insert db collection doc))
+      (mc/insert db collection doc)
       (is (= 1 (mc/count db collection)))))
 
   (deftest insert-a-basic-document-with-explicitly-passed-database-without-id-and-with-default-write-concern
@@ -50,7 +50,7 @@
   (deftest insert-a-basic-document-without-id-and-with-explicit-write-concern
     (let [collection "people"
           doc        {:name "Joe" :age 30}]
-      (is (mc/insert db collection doc WriteConcern/SAFE))
+      (mc/insert db collection doc WriteConcern/SAFE)
       (is (= 1 (mc/count db collection)))))
 
   (deftest insert-a-basic-db-object-without-id-and-with-default-write-concern
@@ -162,14 +162,14 @@
   (deftest insert-a-batch-of-basic-documents-without-ids-and-with-explicit-write-concern
     (let [collection "people"
           docs       [{:name "Joe" :age 30} {:name "Paul" :age 27}]]
-      (is (mc/insert-batch db collection docs WriteConcern/FSYNCED))
+      (mc/insert-batch db collection docs WriteConcern/FSYNCED)
       (is (= 2 (mc/count db collection)))))
 
   (deftest insert-a-batch-of-basic-documents-with-explicit-database-without-ids-and-with-explicit-write-concern
     (let [collection "people"
           docs       [{:name "Joe" :age 30} {:name "Paul" :age 27}]]
       (dotimes [n 44]
-        (is (mc/insert-batch db collection docs WriteConcern/FSYNCED)))
+        (mc/insert-batch db collection docs WriteConcern/FSYNCED))
       (is (= 88 (mc/count db collection)))))
 
   (deftest insert-a-batch-of-basic-documents-from-a-lazy-sequence
