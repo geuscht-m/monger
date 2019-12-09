@@ -108,16 +108,16 @@
            max-time
            options]
     :or { limit 0 batch-size 256 skip 0 } }]
-  (let [cursor (.batchSize (.skip (.limit (.projection (.find collection (to-bson-document query)) (as-field-selector fields)) limit) skip) batch-size)]
+  (let [collWithSettings (if read-preference
+                           (.withReadPreference collection read-preference)
+                           collection)  
+        cursor (.batchSize (.skip (.limit (.projection (.find collWithSettings (to-bson-document query)) (as-field-selector fields)) limit) skip) batch-size)]
     (when sort
       (.sort cursor (to-bson-document sort)))
     (when snapshot
       (.snapshot cursor))
     (when hint
       (.hint cursor (to-bson-document hint)))
-    ;; FIXME - read preference is now a property of MongoCollection
-    ;;(when read-preference
-    ;;  (.setReadPreference cursor read-preference))
     (when max-time
       (.maxTime cursor max-time TimeUnit/MILLISECONDS))
     (when options
