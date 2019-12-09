@@ -237,9 +237,9 @@
            operation-options (if remove
                                (.sort (FindOneAndDeleteOptions.) maybe-sort)
                                (.projection (.returnDocument (.upsert (.sort (FindOneAndUpdateOptions.) maybe-sort) upsert) (if return-new ReturnDocument/AFTER ReturnDocument/BEFORE)) maybe-fields)) ]
-       (print "Conditions: ")(println conditions)
-       (print "Document: ")(println document)
-       (print "Keys: ")(println upsert)
+       ;; (print "Conditions: ")(println conditions)
+       ;; (print "Document: ")(println document)
+       ;; (print "Keys: ")(println upsert)
        (from-bson-document
         (if remove
           (.findOneAndDelete mcoll (to-bson-document conditions) operation-options)
