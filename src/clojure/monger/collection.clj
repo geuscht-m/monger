@@ -183,16 +183,16 @@
        (doall (map (fn [x] (from-bson-document x keywordize)) (iterator-seq dbc))))))
 
 (defn find-seq
-  "Queries for objects in this collection, returns ISeq of Documents."
+  "Queries for objects in this collection, returns ISeq of Documents.
+   Note that the original API used with-open, which closes the cursor
+   too early with the 3.x API. Ensure you're closing the connection used
+   by this function at some point."
   ([^MongoDatabase db ^String coll]
-     (with-open [dbc (find db coll)]
-       (iterator-seq dbc)))
+   (iterator-seq (find db coll)))
   ([^MongoDatabase db ^String coll ^Map ref]
-     (with-open [dbc (find db coll ref)]
-       (iterator-seq dbc)))
+   (iterator-seq (find db coll ref)))
   ([^MongoDatabase db ^String coll ^Map ref fields]
-     (with-open [dbc (find db coll ref fields)]
-       (iterator-seq dbc))))
+   (iterator-seq (find db coll ref fields))))
 
 ;;
 ;; monger.collection/find-one
