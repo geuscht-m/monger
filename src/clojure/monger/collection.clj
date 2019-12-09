@@ -317,8 +317,6 @@
                                                        :or {upsert false
                                                             multi false
                                                             write-concern mc/*mongodb-write-concern*}}]
-   (println conditions)
-   (println (update-syntax-driver-3 document))
    (if multi
      (.updateMany (.getCollection db (name coll))
                   (to-bson-document conditions)
@@ -436,8 +434,8 @@
      ;; it is already present. MK.
    (let [doc (merge {:_id (ObjectId.)} document)]
      (print "save-and-return document ")
-     (println doc)
-     (println document)
+     ;;(println doc)
+     ;;(println document)
      (save db coll doc write-concern)
      doc)))
 
