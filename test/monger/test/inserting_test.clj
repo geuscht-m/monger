@@ -175,7 +175,7 @@
   (deftest insert-a-batch-of-basic-documents-from-a-lazy-sequence
     (let [collection "people"
           numbers    (range 0 1000)]
-      (is (mc/insert-batch db collection (map (fn [^long l]
+      (mc/insert-batch db collection (map (fn [^long l]
                                                 {:n l})
-                                              numbers)))
+                                              numbers))
       (is (= (count numbers) (mc/count db collection))))))
