@@ -5,7 +5,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure        "1.9.0"]
-                 [org.mongodb/mongodb-driver "3.9.1"]
+                 [org.mongodb/mongodb-driver "3.12.0"]
                  [clojurewerkz/support       "1.1.0"]
                  [com.taoensso/timbre        "4.10.0"] ;; Mainly used to get a chance to deal with the chatty Java driver
                  [com.fzakaria/slf4j-timbre  "0.3.14"] ;; Attempt to send all log output through timbre
